@@ -5,7 +5,7 @@
 ;   Version 3:
 ;       Everything prior to 5/16/99 when I started making release notes!
 ;       Prior to this date there are release notes for each routine but no
-;       global release notes for the EPICS_MCA class, and there are no
+;       global release notes for the MCA class, and there are no
 ;       version numbers
 ;  Version 4.1
 ;       May 16, 1999  Mark Rivers
@@ -50,6 +50,16 @@
 ;           record limit.
 ;       Sept. 21, 2001 Mark Rivers
 ;           Added GET_NAME and SET_NAME methods.
+;       Sept. 29, 2001 Mark Rivers
+;          Added support for netCDF file format.
+;          Renamed MCA::WRITE_FILE to MCA::WRITE_ASCII_FILE, created
+;          MCA::WRITE_NETCDF_FILE, new version of MCA::WRITE_FILE that calls 
+;          one or the other of these.  
+;          Renamed MCA_READ_FILE to MCA_READ_ASCII_FILE, created
+;          MCA_READ_NETCDF_FILE, new version of MCA_READ_FILE that calls 
+;          one or the other of these.  
+;          Took the EPICS specific code to get environment out of the 
+;          WRITE_FILE routines, added call to GET_ENVIRONMENT()
 ;-
 ;
 
@@ -972,7 +982,8 @@ pro mca::set_environment, environment
 ; MODIFICATION HISTORY:
 ;       Written by:     Mark Rivers, October 30, 1998
 ;-
-    self.environment = ptr_new(environment)
+    if (n_elements(environment) gt 0) then $
+        self.environment = ptr_new(environment)
 end
 
 
@@ -1980,10 +1991,56 @@ end
 
 
 ;*****************************************************************************
-pro mca::write_file, file ; write data to a file in ASCII
+pro mca::write_file, file, netcdf=netcdf ; write data to a file
 ;+
 ; NAME:
 ;       MCA::WRITE_FILE
+;
+; PURPOSE:
+;       This procedure writes MCA or MED objects to a disk file.
+;       It calls MCA::WRITE_NETCDF_FILE if the /NETCDF keyword is specified, 
+;       otherwise it calls MCA::WRITE_ASCII_FILE.
+;
+;       Note that users who want to read such files with IDL are strongly
+;       encouraged to use MCA::READ_FILE.  
+;
+; CATEGORY:
+;       IDL device class library.
+;
+; CALLING SEQUENCE:
+;       mca->WRITE_FILE, File
+;
+; INPUTS:
+;       File:  The name of the disk file to write.
+;
+; KEYWORD PARAMETERS:
+;       NETCDF:  Set this flag to write the file in netCDF format, otherwise
+;                the file is written in ASCII format.  See the documentation
+;                for MCA::WRITE_ASCII_FILE and MCA::WRITE_NETCDF_FILE for 
+;                information on the formats.
+;
+; EXAMPLE:
+;       mca = obj_new('MCA')
+;       mca->write_file, 'mca.001', /netcdf
+;
+; MODIFICATION HISTORY:
+;       Written by:     Mark Rivers, September 29, 2001.  The previous
+;                       version of MCA::WRITE_FILE was renamed to MCA::
+;                       WRITE_ASCII_FILE, and the MCA::WRITE_NETCDF_FILE was
+;                       added.
+;-
+    if (keyword_set(netcdf)) then begin
+        self->write_netcdf_file, file
+    endif else begin
+        self->write_ascii_file, file
+    endelse
+end
+
+;*****************************************************************************
+pro mca::write_ascii_file, file 
+;+
+; NAME:
+;       MCA::WRITE_ASCII_FILE
 ;
 ; PURPOSE:
 ;       This procedure writes MCA or MED objects to a disk file.  The file format
@@ -1998,6 +2055,9 @@ pro mca::write_file, file ; write data to a file in ASCII
 ;       position of lines in the data.  Additional tags may be added in the
 ;       future, but existing tags will not be changed.
 ;
+;       This procedure is typically not called directly, but is called
+;       by MCA::WRITE_FILE if the /NETCDF keyword is not used.
+;
 ;       The following shows part of a file written with this procedure for a
 ;       13 element MED:
 ;       ...
@@ -2006,13 +2066,15 @@ pro mca::write_file, file ; write data to a file in ASCII
 ;       IDL device class library.
 ;
 ; CALLING SEQUENCE:
-;       mca->WRITE_FILE, File
+;       mca->WRITE_ASCII_FILE, File
 ;
 ; INPUTS:
 ;       File:  The name of the disk file to write.
 ;
 ; EXAMPLE:
 ;       mca = obj_new('MCA')
+;       ; Note - we don't call mca->write_ascii_file directly, but rather
+;       ; call mca->write_file without the /netcdf flag
 ;       mca->write_file, 'mca.001'
 ;
 ; MODIFICATION HISTORY:
@@ -2032,12 +2094,15 @@ pro mca::write_file, file ; write data to a file in ASCII
 ;       31-MAY-2000 MLR   Added ",x" to formats to compensate for a bug in IDL
 ;                         (up to 5.3?) which caused no space in floating
 ;                         numbers printed in "e" format if negative.
+;       29-SEP-2001 MLR   Renamed this procedure from MCA::WRITE_FILE to
+;                         MCA::WRITE_ASCII_FILE.
 ;-
 
     elapsed = self->get_elapsed()
     calibration = self->get_calibration()
     rois = self->get_rois(roi_info)
     data = self->get_data()
+    environment = self->get_environment(n_env)
 
     n_detectors = n_elements(elapsed)
     fformat = '(' + strtrim(n_detectors,2) + '(f,x))'
@@ -2077,19 +2142,11 @@ pro mca::write_file, file ; write data to a file in ASCII
         printf, unit, 'ROI_'+num+'_LABEL: ', $
                     string((rois[i,*].label + ' & '), format=sformat, /print)
     endfor
-    if (ptr_valid(self.environment)) then begin
-        env = *self.environment
-        for i=0, n_elements(env)-1 do begin
-            if ((obj_isa(self, 'EPICS_MCA')) or $
-                (obj_isa(self, 'EPICS_MED'))) then begin
-                status = caget(env[i].name, value)
-                if (status ne 0) then value ='#UNDEFINED'
-            endif else value = ''
-            printf, unit, 'ENVIRONMENT: ', env[i].name, '="', $
-                            strtrim(value,2), $
-                            '" (', env[i].description, ')'
-        endfor
-    endif
+    for i=0, n_env-1 do begin
+        printf, unit, 'ENVIRONMENT: ', environment[i].name, '="', $
+                                       environment[i].value, $
+                                '" (', environment[i].description, ')'
+    endfor
     printf, unit, 'DATA: '
     for i=0, nchans-1 do begin
         temp = reform(data[i,*])
@@ -2097,6 +2154,133 @@ pro mca::write_file, file ; write data to a file in ASCII
         printf, unit, line
     endfor
     free_lun, unit
+end
+
+;*****************************************************************************
+pro mca::write_netcdf_file, file 
+;+
+; NAME:
+;       MCA::WRITE_FILE
+;
+; PURPOSE:
+;       This procedure writes MCA or MED objects to a disk file in netCDF
+;       format.  netCDF is a portable, self-describing binary format, and there
+;       is software to read such files in many data analysis and data
+;       visualization programs.  It is much more efficient, in speed and disk
+;       space, than the ASCII format. The file contains the information from the
+;       MCA object which it makes sense to store permanently, but does not
+;       contain all of the internal state information for the MCA.  Files
+;       written with this routine can be read with <A HREF="#MCA::READ_FILE">MCA::READ_FILE</A>.
+;
+;       This procedure is typically not called directly, but is called
+;       by MCA::WRITE_FILE if the /NETCDF keyword is used.
+;
+;       Note that users who want to read such files with IDL are strongly
+;       encouraged to use MCA::READ_FILE.  Files can be read in other languages
+;       by using the netCDF library which is availble from XXXXX
+;
+; CATEGORY:
+;       IDL device class library.
+;
+; CALLING SEQUENCE:
+;       mca->WRITE_NETCDF_FILE, File
+;
+; INPUTS:
+;       File:  The name of the disk file to write.
+;
+; EXAMPLE:
+;       mca = obj_new('MCA')
+;       ; Note - we don't call mca->write_netcdf_file directly, but rather
+;       ; use the /netcdf flag to mca->write_file
+;       mca->write_file, 'mca.001', /netcdf  
+;
+; MODIFICATION HISTORY:
+;       Written by:     Mark Rivers, September 29, 2001.
+;-
+
+    elapsed = self->get_elapsed()
+    calibration = self->get_calibration()
+    rois = self->get_rois(roi_info)
+    environment = self->get_environment(n_env)
+    data = self->get_data()
+
+    n_detectors = n_elements(elapsed)
+    nchans = n_elements(data[*,0])
+    max_rois = max(roi_info.nrois)
+
+    MAX_STRING=80
+
+    ; netCDF file format
+    ; Create netCDF file
+    file_id = ncdf_create(file, /clobber)
+    ncdf_control, file_id, fill=0
+
+    ; Create dimensions
+    n_detectors_id = ncdf_dimdef(file_id, 'N_DETECTORS', n_detectors)
+    nchans_id = ncdf_dimdef(file_id, 'N_CHANS', nchans)
+    max_string_id = ncdf_dimdef(file_id, 'MAX_STRING', MAX_STRING)
+    if (max_rois gt 0) then $
+        max_rois_id = ncdf_dimdef(file_id, 'MAX_ROIS', max_rois)
+    if (n_env gt 0) then $
+        n_env_id = ncdf_dimdef(file_id, 'N_ENVIRONMENT', n_env)
+
+    ; Create variables
+    data_id = ncdf_vardef(file_id, 'DATA', [nchans_id, n_detectors_id], /LONG)
+    nrois_id = ncdf_vardef(file_id, 'N_ROIS', [n_detectors_id], /LONG)
+    real_time_id = ncdf_vardef(file_id, 'REAL_TIME', [n_detectors_id], /FLOAT)
+    live_time_id = ncdf_vardef(file_id, 'LIVE_TIME', [n_detectors_id], /FLOAT)
+    cal_offset_id = ncdf_vardef(file_id, 'CAL_OFFSET', [n_detectors_id], /FLOAT)
+    cal_slope_id = ncdf_vardef(file_id, 'CAL_SLOPE', [n_detectors_id], /FLOAT)
+    cal_quad_id = ncdf_vardef(file_id, 'CAL_QUAD', [n_detectors_id], /FLOAT)
+    two_theta_id = ncdf_vardef(file_id, 'TWO_THETA', [n_detectors_id], /FLOAT)
+    if (max_rois gt 0) then begin
+        roi_left_id = ncdf_vardef(file_id, 'ROI_LEFT', $
+                            [max_rois_id, n_detectors_id], /LONG)
+        roi_right_id = ncdf_vardef(file_id, 'ROI_RIGHT', $
+                            [max_rois_id, n_detectors_id], /LONG)
+        roi_label_id = ncdf_vardef(file_id, 'ROI_LABEL', $
+                            [max_string_id, max_rois_id, n_detectors_id], /CHAR)
+    endif
+    if (n_env gt 0) then begin
+        env_name_id = ncdf_vardef(file_id, 'ENV_NAME', $
+                            [max_string_id, n_env_id], /CHAR)
+        env_descr_id = ncdf_vardef(file_id, 'ENV_DESCRIPTION', $
+                            [max_string_id, n_env_id], /CHAR)
+        env_value_id = ncdf_vardef(file_id, 'ENV_VALUE', $
+                            [max_string_id, n_env_id], /CHAR)
+    endif
+
+    ; Create attributes.  Replace null strings with a blank.
+    ncdf_attput, file_id, /GLOBAL, 'VERSION', '3.1'
+    date = elapsed[0].start_time
+    if (strlen(date) eq 0) then date=' '
+    ncdf_attput, file_id, /GLOBAL, 'DATE', date
+
+    ; Put the file into data mode.
+    ncdf_control, file_id, /endef 
+
+    ; Write variables to the file
+    ncdf_varput, file_id, nrois_id, roi_info.nrois
+    ncdf_varput, file_id, real_time_id, elapsed.real_time
+    ncdf_varput, file_id, live_time_id, elapsed.live_time
+    ncdf_varput, file_id, cal_offset_id, calibration.offset
+    ncdf_varput, file_id, cal_slope_id, calibration.slope
+    ncdf_varput, file_id, cal_quad_id, calibration.quad
+    ncdf_varput, file_id, two_theta_id, calibration.two_theta
+    if (max_rois gt 0) then begin
+        ncdf_varput, file_id, roi_left_id, rois.left
+        ncdf_varput, file_id, roi_right_id, rois.right
+        ncdf_varput, file_id, roi_label_id, rois.label
+    endif
+    if (n_env gt 0) then begin
+        ncdf_varput, file_id, env_name_id, environment.name
+        ncdf_varput, file_id, env_descr_id, environment.description
+        ncdf_varput, file_id, env_value_id, environment.value
+    endif
+    ncdf_varput, file_id, data_id, data[0:nchans-1,*]
+
+    ; Close the file
+    ncdf_close, file_id
 end
 
 
@@ -2176,7 +2360,8 @@ pro mca::read_standard_file, file
 ;-
 
     temp = self->get_rois(roi_info)
-    mca_read_file, file, elapsed, calibration, rois, roi_info, environment, data
+    mca_read_file, file, elapsed, calibration, rois, roi_info, $
+                       environment, data
     self.name = file
     self.nchans = n_elements(data[*,0])
     self->set_elapsed, elapsed[0]
@@ -2193,10 +2378,66 @@ end
 
 
 ;*****************************************************************************
-pro mca_read_file, file, elapsed, calibration, rois, roi_info, environment, data
+pro mca_read_file, file, elapsed, calibration, rois, roi_info, $
+                         environment, data
 ;+
 ; NAME:
 ;       MCA_READ_FILE
+;
+; PURPOSE:
+;       This procedure reads a disk file into an MCA object.  This procedure
+;       reads either ASCII or netCDF files.  It does not read into the
+;       object itself, because the dimensions in the disk file may be
+;       inconsistent with those of the object.  The object procedures call
+;       this procedure.
+;
+; CATEGORY:
+;       IDL device class library.
+;
+; CALLING SEQUENCE:
+;
+;       MCA_READ_FILE, File, Elapsed, Calibration, Rois, Roi_info, $
+;                      Environment, Data
+;
+; INPUTS:
+;       File:  The name of the disk file to read.
+;
+; OUTPUTS:
+;       The elapsed, calibration, roi, environment and data information
+;       in the disk file
+;
+; EXAMPLE:
+;       mca_read_file, 'mca.001', Elapsed, Calibration, Rois, Roi_info,
+;                                 Environment, Data
+;
+; MODIFICATION HISTORY:
+;       Written by:     Mark Rivers, September 29, 2001. Previous version
+;                       renamed to MCA_READ_ASCII_FILE
+
+    on_ioerror, ignore_error
+    ncdf_control, 0, /noverbose
+    file_id = ncdf_open(file, /nowrite)
+ignore_error:
+    if (n_elements(file_id) eq 0) then begin
+        on_ioerror, null
+        ; This is not a netCDF file, it is an ASCII file
+        mca_read_ascii_file, file, elapsed, calibration, rois, roi_info, $
+                       environment, data
+    endif else begin
+        ; This is a netCDF file
+        ; Close the netCDF file that was opened in the test above
+        ncdf_close, file_id
+        mca_read_netcdf_file, file, elapsed, calibration, rois, roi_info, $
+                       environment, data
+    endelse
+end
+
+;*****************************************************************************
+pro mca_read_ascii_file, file, elapsed, calibration, rois, roi_info, $
+                         environment, data
+;+
+; NAME:
+;       MCA_READ_ASCII_FILE
 ;
 ; PURPOSE:
 ;       This procedure reads a disk file into an MCA object.  The file format
@@ -2219,7 +2460,7 @@ pro mca_read_file, file, elapsed, calibration, rois, roi_info, environment, data
 ;       None
 ;
 ; EXAMPLE:
-;       mca_read_file, 'mca.001', Elapsed, Calibration, Rois, Roi_info, Data
+;       mca_read_ascii_file, 'mca.001', Elapsed, Calibration, Rois, Roi_info, Data
 ;
 ; MODIFICATION HISTORY:
 ;       Written by:     Mark Rivers, October 1, 1997
@@ -2232,6 +2473,8 @@ pro mca_read_file, file, elapsed, calibration, rois, roi_info, environment, data
 ;                         WRITE_FILE which is also fixed.
 ;       31-MAY-2000  MLR  Modified slightly to handle lines without a trailing
 ;                         blank, as happens when some text editors modify them.
+;       29-SEP-2001  MLR  Renamed to MCA_READ_ASCII_FILE, added
+;                         MCA_READ_NETCDF_FILE
 ;-
 
     openr, unit, file, /get_lun
@@ -2353,6 +2596,129 @@ pro mca_read_file, file, elapsed, calibration, rois, roi_info, environment, data
     ; Make sure DATA array is define, else this was not a valid data file
     if (n_elements(data) eq 0) then message, 'Not a valid data file: ' + file + '.'
     free_lun, unit
+end
+
+
+;*****************************************************************************
+pro mca_read_netcdf_file, file, elapsed, calibration, rois, roi_info, $
+                         environment, data
+;+
+; NAME:
+;       MCA_READ_NETCDF_FILE
+;
+; PURPOSE:
+;       This procedure reads a disk file into an MCA object.  The file format
+;       is netCDF.  The file contains the information from the
+;       MCA object which it makes sense to store permanently, but does not
+;       contain all of the internal state information for the MCA.  This
+;       procedure reads files written with <A HREF="#MCA::WRITE_FILE">MCA::WRITE_FILE, /NETCDF</A>.
+;
+; CATEGORY:
+;       IDL device class library.
+;
+; CALLING SEQUENCE:
+;
+;       mca->READ_FILE, File, Elapsed, Calibration, Rois, Data
+;
+; INPUTS:
+;       File:  The name of the disk file to read.
+;
+; OUTPUTS:
+;       None
+;
+; EXAMPLE:
+;       mca_read_netdf_file, 'mca.001', Elapsed, Calibration, Rois, Roi_info, Data
+;
+; MODIFICATION HISTORY:
+;       Written by:     Mark Rivers, Sept. 29, 2001
+;-
+
+    file_id = ncdf_open(file, /nowrite)
+
+    ; Get the dimension ids
+    n_detectors_id = ncdf_dimid(file_id, 'N_DETECTORS')
+    ncdf_diminq, file_id, n_detectors_id, name, n_detectors
+    max_rois_id = ncdf_dimid(file_id, 'MAX_ROIS')
+    if (max_rois_id eq -1) then max_rois=0 $
+    else ncdf_diminq, file_id, max_rois_id, name, max_rois
+    n_env_id = ncdf_dimid(file_id, 'N_ENVIRONMENT')
+    if (n_env_id eq -1) then n_env=0 $
+    else ncdf_diminq, file_id, n_env_id, name, n_env
+
+    elapsed = replicate({MCA_ELAPSED}, n_detectors)
+    calibration = replicate({MCA_CALIBRATION}, n_detectors)
+    roi_info = replicate({MCA_ROI_INFO}, n_detectors)
+
+    ; Process the global attributes
+    status = ncdf_inquire(file_id)
+    for i=0, status.ngatts-1 do begin
+        name = ncdf_attname(file_id, /global, i)
+        ncdf_attget, file_id, /global, name, value
+        value = string(value)
+        case name of
+                'VERSION'   :  t = 0; No-op
+                'DATE'      :  elapsed.start_time = value
+        endcase
+    endfor
+
+    ; Get the variable ids - they are -1 if not defined
+    data_id = ncdf_varid(file_id, 'DATA')
+    nrois_id = ncdf_varid(file_id, 'N_ROIS')
+    real_time_id = ncdf_varid(file_id, 'REAL_TIME')
+    live_time_id = ncdf_varid(file_id, 'LIVE_TIME')
+    cal_offset_id = ncdf_varid(file_id, 'CAL_OFFSET')
+    cal_slope_id = ncdf_varid(file_id, 'CAL_SLOPE')
+    cal_quad_id = ncdf_varid(file_id, 'CAL_QUAD')
+    two_theta_id = ncdf_varid(file_id, 'TWO_THETA')
+    if (max_rois gt 0) then begin
+        rois = replicate({MCA_ROI}, max_rois, n_detectors)
+        roi_left_id = ncdf_varid(file_id, 'ROI_LEFT')
+        roi_right_id = ncdf_varid(file_id, 'ROI_RIGHT')
+        roi_label_id = ncdf_varid(file_id, 'ROI_LABEL')
+    endif
+    if (n_env gt 0) then begin
+        env_name_id = ncdf_varid(file_id, 'ENV_NAME')
+        env_descr_id = ncdf_varid(file_id, 'ENV_DESCRIPTION')
+        env_value_id = ncdf_varid(file_id, 'ENV_VALUE')
+    endif
+
+    ; Read variables from the file
+    ncdf_varget, file_id, nrois_id, temp
+    roi_info.nrois = temp
+    ncdf_varget, file_id, real_time_id, temp
+    elapsed.real_time = temp
+    ncdf_varget, file_id, live_time_id, temp
+    elapsed.live_time = temp
+    ncdf_varget, file_id, cal_offset_id, temp
+    calibration.offset = temp
+    ncdf_varget, file_id, cal_slope_id, temp
+    calibration.slope = temp
+    ncdf_varget, file_id, cal_quad_id, temp
+    calibration.quad = temp
+    ncdf_varget, file_id, two_theta_id, temp
+    calibration.two_theta = temp
+    if (max_rois gt 0) then begin
+        ncdf_varget, file_id, roi_left_id, temp
+        rois.left = temp
+        ncdf_varget, file_id, roi_right_id, temp
+        rois.right = temp
+        ncdf_varget, file_id, roi_label_id, temp
+        rois.label = string(temp)
+    endif
+    if (n_env gt 0) then begin
+        environment = replicate({MCA_ENVIRONMENT}, n_env)
+        ncdf_varget, file_id, env_name_id, temp
+        environment.name = string(temp)
+        ncdf_varget, file_id, env_descr_id, temp
+        environment.description = string(temp)
+        ncdf_varget, file_id, env_value_id, temp
+        environment.value = string(temp)
+    endif
+    ncdf_varget, file_id, data_id, data
+
+    ; Close the netCDF file
+    ncdf_close, file_id
+
 end
 
 
