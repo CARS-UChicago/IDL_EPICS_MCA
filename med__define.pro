@@ -850,7 +850,7 @@ pro med::read_file, file
     self.nchans = n_elements(data[*,0])
     elapsed = elapsed[0:nd-1]
     calibration = calibration[0:nd-1]
-    rois = rois[*, 0:nd-1]
+    if (n_elements(rois) gt 0) then rois = rois[*, 0:nd-1]
     roi_info = roi_info[0:nd-1]
     self->set_elapsed, elapsed
     self->set_calibration, calibration
@@ -864,6 +864,7 @@ pro med::read_file, file
         self.mca_objs[i]->set_data, data[*,i]
         self.mca_objs[i]->set_name, self.name + ':' + strtrim(i+1, 2)
     endfor
+    self->set_environment, environment
 end
 
 
