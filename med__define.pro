@@ -839,9 +839,11 @@ pro med::read_file, file
 ;       18-NOV-1998  MLR  Added Environment to MCA_READ_FILE call
 ;       24-NOV-1998  MLR  Corrected logic when med has fewer detectors than
 ;                         the data file has.
+;       21-SEP-2001  MLR  Added set_name for each mca.
 ;-
     temp = self->get_rois(roi_info)
     mca_read_file, file, elapsed, calibration, rois, roi_info, environment, data
+    self.name = file
     nd = n_elements(elapsed)
     self.n_detectors = self.n_detectors < nd
     nd = self.n_detectors
@@ -860,6 +862,7 @@ pro med::read_file, file
             self.mca_objs[i]->set_rois
         endelse
         self.mca_objs[i]->set_data, data[*,i]
+        self.mca_objs[i]->set_name, self.name + ':' + strtrim(i+1, 2)
     endfor
 end
 
