@@ -457,7 +457,8 @@ end
 
 
 ;*****************************************************************************
-function epics_med::init, prefix, n_detectors, bad_detectors=bad_detectors
+function epics_med::init, prefix, n_detectors, bad_detectors=bad_detectors, $
+                  environment_file=environment_file
 ;+
 ; NAME:
 ;       EPICS_MED::INIT
@@ -537,6 +538,8 @@ function epics_med::init, prefix, n_detectors, bad_detectors=bad_detectors
 ;       26-Oct-2000 MLR  Improved example documentation 
 ;-
     if (n_elements(n_detectors) eq 0) then n_detectors=16
+    if (n_elements(environment_file) eq 0) then environment_file = 'catch1d.env'
+
     t = self->med::init(n_detectors)  ; Invoke base class initialization
     self.pvs.start = prefix + 'StartAll'
     self.pvs.erasestart = prefix + 'EraseStart'
@@ -563,7 +566,7 @@ function epics_med::init, prefix, n_detectors, bad_detectors=bad_detectors
     self.good_detectors = good_detectors
     for i=0, self.n_detectors-1 do begin
         pv = prefix + 'mca' + strtrim(self.good_detectors[i], 2)
-        self.mca_objs[i] = obj_new('epics_mca', pv)
+        self.mca_objs[i] = obj_new('epics_mca', pv,environment_file=environment_file)
         if obj_valid(self.mca_objs[i]) ne 1 then return, 0
     endfor
     t = casetmonitor(self.pvs.elive)
