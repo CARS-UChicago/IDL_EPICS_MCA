@@ -53,13 +53,16 @@
 ;       Sept. 29, 2001 Mark Rivers
 ;          Added support for netCDF file format.
 ;          Renamed MCA::WRITE_FILE to MCA::WRITE_ASCII_FILE, created
-;          MCA::WRITE_NETCDF_FILE, new version of MCA::WRITE_FILE that calls 
-;          one or the other of these.  
+;          MCA::WRITE_NETCDF_FILE, new version of MCA::WRITE_FILE that calls
+;          one or the other of these.
 ;          Renamed MCA_READ_FILE to MCA_READ_ASCII_FILE, created
-;          MCA_READ_NETCDF_FILE, new version of MCA_READ_FILE that calls 
-;          one or the other of these.  
-;          Took the EPICS specific code to get environment out of the 
+;          MCA_READ_NETCDF_FILE, new version of MCA_READ_FILE that calls
+;          one or the other of these.
+;          Took the EPICS specific code to get environment out of the
 ;          WRITE_FILE routines, added call to GET_ENVIRONMENT()
+;      August 28, 2002 Mark Rivers
+;          Fixed bug in background calculation in FIT_PEAKS_REPORT, hi was
+;          one channel to large.
 ;-
 ;
 
@@ -464,7 +467,7 @@ pro mca::fit_peaks_report, fit, peaks, background, $
         low = (low > 0) < (self.nchans-3)
         hi  = background->energy_to_chan(peaks(i).energy + $
                 2.*peaks(i).fwhm / SIGMA_TO_FWHM)
-        hi = (hi > low+1) < (self.nchans-1)
+        hi = (hi > (low+1)) < (self.nchans-1)
         peaks(i).bgd = total(background_counts(low:hi))
     endfor
 
@@ -522,19 +525,19 @@ pro mca::fit_peaks_report, fit, peaks, background, $
             printf, spread_lun, format='(a,$)', peaks(i).label + '#'
         endfor
         printf, spread_lun
-        printf, spread_lun, format='(a,a,f10.3,a,f10.3,a,$)', self.name, $ 
+        printf, spread_lun, format='(a,a,f10.3,a,f10.3,a,$)', self.name, $
                 '#Energy#', elapsed.live_time, '#', elapsed.real_time, '#'
         for i=0, fit.npeaks-1 do begin
             printf, spread_lun, format='(f10.3,a,$)', peaks(i).energy, '#'
         endfor
         printf, spread_lun
-        printf, spread_lun, format='(a,a,f10.3,a,f10.3,a,$)', self.name, $ 
+        printf, spread_lun, format='(a,a,f10.3,a,f10.3,a,$)', self.name, $
                 '#FWHM#', elapsed.live_time, '#', elapsed.real_time, '#'
         for i=0, fit.npeaks-1 do begin
             printf, spread_lun, format='(f10.3,a,$)', peaks(i).fwhm, '#'
         endfor
         printf, spread_lun
-        printf, spread_lun, format='(a,a,f10.3,a,f10.3,a,$)', self.name, $ 
+        printf, spread_lun, format='(a,a,f10.3,a,f10.3,a,$)', self.name, $
                 '#Area#', elapsed.live_time, '#', elapsed.real_time, '#'
         for i=0, fit.npeaks-1 do begin
             printf, spread_lun, format='(f10.1,a,$)', peaks(i).area, '#'
@@ -948,7 +951,7 @@ pro mca::set_environment, environment
 ;
 ; PURPOSE:
 ;       This procedure sets the environment parameters for the MCA.
-;       The calibration information is contained in an array of structures of 
+;       The calibration information is contained in an array of structures of
 ;       type MCA_ENVIRONMENT.
 ;
 ; CATEGORY:
@@ -995,7 +998,7 @@ function mca::get_environment, count, name=name, description=description
 ;
 ; PURPOSE:
 ;       This function gets the environment parameters for the MCA.
-;       The environment information is contained in an array of structures 
+;       The environment information is contained in an array of structures
 ;       of type MCA_ENVIRONMENT.
 ;
 ; CATEGORY:
@@ -1998,11 +2001,11 @@ pro mca::write_file, file, netcdf=netcdf ; write data to a file
 ;
 ; PURPOSE:
 ;       This procedure writes MCA or MED objects to a disk file.
-;       It calls MCA::WRITE_NETCDF_FILE if the /NETCDF keyword is specified, 
+;       It calls MCA::WRITE_NETCDF_FILE if the /NETCDF keyword is specified,
 ;       otherwise it calls MCA::WRITE_ASCII_FILE.
 ;
 ;       Note that users who want to read such files with IDL are strongly
-;       encouraged to use MCA::READ_FILE.  
+;       encouraged to use MCA::READ_FILE.
 ;
 ; CATEGORY:
 ;       IDL device class library.
@@ -2016,7 +2019,7 @@ pro mca::write_file, file, netcdf=netcdf ; write data to a file
 ; KEYWORD PARAMETERS:
 ;       NETCDF:  Set this flag to write the file in netCDF format, otherwise
 ;                the file is written in ASCII format.  See the documentation
-;                for MCA::WRITE_ASCII_FILE and MCA::WRITE_NETCDF_FILE for 
+;                for MCA::WRITE_ASCII_FILE and MCA::WRITE_NETCDF_FILE for
 ;                information on the formats.
 ;
 ; EXAMPLE:
@@ -2037,7 +2040,7 @@ pro mca::write_file, file, netcdf=netcdf ; write data to a file
 end
 
 ;*****************************************************************************
-pro mca::write_ascii_file, file 
+pro mca::write_ascii_file, file
 ;+
 ; NAME:
 ;       MCA::WRITE_ASCII_FILE
@@ -2157,7 +2160,7 @@ pro mca::write_ascii_file, file
 end
 
 ;*****************************************************************************
-pro mca::write_netcdf_file, file 
+pro mca::write_netcdf_file, file
 ;+
 ; NAME:
 ;       MCA::WRITE_FILE
@@ -2192,7 +2195,7 @@ pro mca::write_netcdf_file, file
 ;       mca = obj_new('MCA')
 ;       ; Note - we don't call mca->write_netcdf_file directly, but rather
 ;       ; use the /netcdf flag to mca->write_file
-;       mca->write_file, 'mca.001', /netcdf  
+;       mca->write_file, 'mca.001', /netcdf
 ;
 ; MODIFICATION HISTORY:
 ;       Written by:     Mark Rivers, September 29, 2001.
@@ -2257,7 +2260,7 @@ pro mca::write_netcdf_file, file
     ncdf_attput, file_id, /GLOBAL, 'DATE', date
 
     ; Put the file into data mode.
-    ncdf_control, file_id, /endef 
+    ncdf_control, file_id, /endef
 
     ; Write variables to the file
     ncdf_varput, file_id, nrois_id, roi_info.nrois
