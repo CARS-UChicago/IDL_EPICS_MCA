@@ -48,6 +48,8 @@
 ;       July 21, 2001 Mark Rivers
 ;           Increased MAX_ROIS from 10 to 32 to take advantage of new EPICS
 ;           record limit.
+;       Sept. 21, 2001 Mark Rivers
+;           Added GET_NAME and SET_NAME methods.
 ;-
 ;
 
@@ -855,6 +857,76 @@ pro mca::set_calibration, calibration
 ;       Written by:     Mark Rivers, October 1, 1997
 ;-
     self.calibration = calibration
+end
+
+
+;*****************************************************************************
+function mca::get_name
+;+
+; NAME:
+;       MCA::GET_NAME
+;
+; PURPOSE:
+;       This function returns the name of this MCA object.
+;
+; CATEGORY:
+;       IDL device class library.
+;
+; CALLING SEQUENCE:
+;
+;       Result = mca->GET_NAME()
+;
+; INPUTS:
+;       None:
+;
+; OUTPUTS:
+;       This function returns the name of the MCA object.  This is typically either
+;       the hardware name of the detector or the name of the disk file that contained
+;       the MCA data.
+;
+; EXAMPLE:
+;       mca = obj_new('MCA')
+;       mca->read_file, 'mca.001'
+;       name = mca->GET_NAME()
+;
+; MODIFICATION HISTORY:
+;       Written by:     Mark Rivers, September 21, 2001
+;-
+    return, self.name
+end
+
+
+;*****************************************************************************
+pro mca::set_name, name
+;+
+; NAME:
+;       MCA::SET_NAME
+;
+; PURPOSE:
+;       This procedure sets the name of the MCA.
+;
+; CATEGORY:
+;       IDL device class library.
+;
+; CALLING SEQUENCE:
+;
+;       mca->SET_NAME, Name
+;
+; INPUTS:
+;       Name:  A string giving the descriptive name of the MCA
+;
+; OUTPUTS:
+;       None
+;
+; EXAMPLE:
+;       mca = obj_new('MCA')
+;       mca->read_file, 'mca.001'
+;       mca->SET_NAME, 'My MCA'
+;
+; MODIFICATION HISTORY:
+;       Written by:     Mark Rivers, September 21, 2001
+;-
+    self.name = name
 end
 
 
