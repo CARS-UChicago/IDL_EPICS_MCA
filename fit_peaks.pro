@@ -209,13 +209,9 @@ function fit_peaks, input_fit, source, input_peaks
 ; COMMON BLOCKS:
 ;       FIT_PEAKS_COMMON:  This common block is used to communicate between the
 ;               various routines in this file.  It is required because of the
-;               way CURVEFIT calls the procedure to evaluate the residuals.
+;               way MPFITFUN calls the procedure to evaluate the residuals.
 ;
 ; RESTRICTIONS:
-;       This function uses the IDL procedure CURVEFIT to perform the non-linear
-;       least-squares fit.  CURVEFIT is not particularly robust.  This function
-;       could probably be improved by using the MINPACK least-squares routine
-;       instead.
 ;       This function is presently limited to fitting Gaussian peaks.  It may
 ;       be extended in the future to fit other peak shapes.
 ;
