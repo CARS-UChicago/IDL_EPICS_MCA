@@ -174,7 +174,7 @@ function epics_med::get_environment, count, name=name, description=description
 end
     
 ;*****************************************************************************
-pro epics_med::acquire_wait, dwell_time, start=start
+pro epics_med::acquire_wait, dwell_time, start=start, stop=stop
 ;+
 ; NAME:
 ;       EPICS_MED::ACQUIRE_WAIT
@@ -189,19 +189,23 @@ pro epics_med::acquire_wait, dwell_time, start=start
 ;
 ;       epics_med->ACQUIRE_WAIT, Time
 ;
+;
+; KEYWORD_PARAMETERS:
+;       START:
+;           Set this flag to wait for acquisition to start.
+;       STOP:
+;           Set this flag to wait for acquisition to stop.  This is the default.
+;
+;       If both the START and STOP keywords are given then the routine will wait
+;       first for acquisition to start and then for acquistion to stop.  If only
+;       /START is given then it will not wait for acquisition to stop.
+;      
 ; OPTIONAL INPUTS:
 ;       Time:  The estimated acquisition time of the MED.
-;       
-; KEYWORD PARAMETERS:
-;	START:	Set this keyword to wait for acquisition to start.  The default
-;               By default this routine waits for acquisition to stop.
-;
-; OUTPUTS:
-;       None
 ;
 ; PROCEDURE:
 ;       This routine simply polls to see if acquisition is complete using
-;       EPICS_MED::GET_ACQUIRE_STATUS(). If the optional Time input is 
+;       EPICS_MED::GET_ACQUIRE_STATUS(). If the optional Time input is
 ;       specified then the time between polling is Time/10.  The default and
 ;       minimum time between polling is one second.
 ;
@@ -213,14 +217,27 @@ pro epics_med::acquire_wait, dwell_time, start=start
 ; MODIFICATION HISTORY:
 ;       Written by:     Mark Rivers, February 13, 1998
 ;       Dec. 2, 1999    Added START keyword
+;       MLR 18-Nov-2003 Added STOP keyword
 ;-
     if (n_elements(dwell_time) eq 0) then dwell_time = 1.
-    if (keyword_set(start)) then wait_status=1 else wait_status=0
-    while (1) do begin
-        if (self->get_acquire_status(/update) eq wait_status) then return
-        wait, dwell_time/10. < 1.0  ; Wait for dwell time or 1 second,
-                                    ; whichever is less
-    endwhile
+    if ((n_elements(start) eq 0) and (n_elements(stop) eq 0)) then stop=1
+
+    if (keyword_set(start)) then begin
+        while (1) do begin
+            if (self->get_acquire_status(/update) eq 1) then goto, done_start
+            wait, dwell_time/100. < 1.0  ; Wait for dwell time or 1 second,
+                                        ; whichever is less
+        endwhile
+    endif
+
+    done_start:
+    if (keyword_set(stop)) then begin
+        while (1) do begin
+            if (self->get_acquire_status(/update) eq 0) then return
+            wait, dwell_time/100. < 1.0  ; Wait for dwell time or 1 second,
+                                        ; whichever is less
+        endwhile
+    endif
 end
 
 
