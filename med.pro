@@ -22,20 +22,23 @@ endif
 ; 'elapsed time' field, and at 15 sec otherwise.
 if (tag_names(event, /structure_name) eq 'WIDGET_TIMER') then begin
     status = 0
-    ctime  = 0
-    s    = caget((*p).det + 'ElapsedReal', ctime)
+    xt1    = (*p).ctime
+    xt2    = 0
+    s      = caget((*p).det + 'ElapsedReal',xt1)
+    s      = caget((*p).det + 'mca1.ERTM',  xt2)
+    (*p).ctime = xt2
+    stime  = strtrim(string(xt2,format='(f7.2)'),2)
+
     s    = caget((*p).det + 'Acquiring', status)
-    wtime= 15.0
     stat = 'Ready'
-    if ((status gt 0) or ((*p).acq_count lt 3)) then begin
-        wtime = 0.5
-        stat  = 'Acquiring'
-    endif
+    if ((status gt 0) or ((*p).acq_count lt 3)) then stat  = 'Acquiring'
+
     (*p).acq_count = (*p).acq_count + 1
-    stime = strtrim(string(ctime,format='(f8.2)'),2)
+                                
+
     Widget_Control, (*p).form.status,   set_value = stat
     Widget_Control, (*p).form.time_rbv, set_value = stime
-    Widget_Control, (*p).form.timer,    time= wtime
+
 endif else begin
     ; print, 'med_event uval: ', uval
     if (strmid(uval,0,4) eq 'elem') then begin
@@ -65,7 +68,6 @@ endif else begin
             endif else begin
                 s = caput((*p).det + 'StartAll', 1)
             endelse
-            widget_control, (*p).form.timer,     time = 0.50
             (*p).acq_count = 1
         end
         'stop': begin
@@ -111,6 +113,7 @@ endif else begin
         end
     endcase
 endelse
+Widget_Control, (*p).form.timer,   time= 0.1
 return
 end
 
@@ -125,6 +128,8 @@ status   = 'Ready'
 time_ent = '1.00'
 time_rbv = '0.00'
 tfile    = 'test.xrf'
+time_mon = det + 'ElapsedReal'
+x = casetmonitor(time_mon)
 
 if (keyword_set(detector) ne 0 ) then det = detector
 med_disp= obj_new()
@@ -134,9 +139,12 @@ form    = {pos:0L, time_rbv:0L, elem:0L, $
            time_ent:0L,timer:0L, status:0L}
 info    = {med_disp:med_disp, med:med, form:form, $
            erase_on_start:1, file:tfile, $
-           det:det, elem:elem, acq_count:1, $
+           det:det, elem:elem, acq_count:1,  $
+           time_mon:time_mon, ctime:0.0, $
            time_ent:time_ent,time_rbv:time_rbv}
 
+caSetTimeout, 0.001
+caSetRetryCount, 200
 ; menus
 main   = Widget_Base(title = 'MED Control', /col, app_mbar = mbar)
 menu   = Widget_Button(mbar, value= 'File')
@@ -149,7 +157,9 @@ info.form.serase_n = widget_button(mx, value = '   No  ', uvalue='serase_n')
 
 
 ; main page
-frm = Widget_Base(main, /row)
+info.form.timer = widget_base(main)
+mx  = info.form.timer
+frm = Widget_Base(mx, /row)
 lfr = Widget_Base(frm,  /column,/frame)
 rfr = Widget_Base(frm,  /column,/frame)
 
@@ -173,7 +183,6 @@ f   = Widget_Base(rfr, /row)
 x   = Widget_Button(f, value = 'Copy ROIS',    uval='copy_rois')
 x   = Widget_Button(f, value = 'Save Spectra', uval='save')
 
-info.form.timer = f
 
 ;
 uf  = Widget_Base(rfr, /row, /frame)
