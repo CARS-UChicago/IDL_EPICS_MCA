@@ -46,7 +46,9 @@
 ;           WRITE_FILE, since this was done again in MCA::WRITE_FILE.
 ;           Changed many calls from caGet to caGetArray.  This eliminates the
 ;           need for caSetMonitor which was slowing things down at startup.
-;           
+;       March 5, 2002 Mark Rivers
+;           Changed acquire_wait to poll every dwell_time/100. from dwell_time/10.
+;           to reduce latencies
 ;-
 ;
 
@@ -899,7 +901,7 @@ pro epics_mca::acquire_wait, dwell_time, start=start, stop=stop
     if (keyword_set(start)) then begin
         while (1) do begin
             if (self->get_acquire_status(/update) eq 1) then goto, done_start
-            wait, dwell_time/10. < 1.0  ; Wait for dwell time or 1 second,
+            wait, dwell_time/100. < 1.0  ; Wait for dwell time or 1 second,
                                         ; whichever is less
         endwhile
     endif
@@ -908,7 +910,7 @@ pro epics_mca::acquire_wait, dwell_time, start=start, stop=stop
     if (keyword_set(stop)) then begin
         while (1) do begin
             if (self->get_acquire_status(/update) eq 0) then return
-            wait, dwell_time/10. < 1.0  ; Wait for dwell time or 1 second,
+            wait, dwell_time/100. < 1.0  ; Wait for dwell time or 1 second,
                                         ; whichever is less
         endwhile
     endif
