@@ -35,6 +35,18 @@
 ;           Added MCA::SPECTRA_SCAN to collect spectra using the "ClientWait"
 ;           PV.  This already existed in EPICS_MED, added to EPICS_MCA.
 ;           Added the /START and /STOP keywords to EPICS_MCA::ACQUIRE_WAIT
+;       Sept. 28, 2001 Mark Rivers
+;           Changed GET_ROIS to use caGetArray and SET_ROIS to use caPutArray.
+;           This speeded up GET_ROIS by a factor of 32 and SET_ROIS by a factor
+;           of 32 the first time, not much on subsequent calls.
+;       Sept. 29, 2001 Mark Rivers
+;           Added GET_ENVIRONMENT.  This code used to be in MCA::WRITE_FILE
+;           where it did not belong.
+;           Deleted calls to read the data, rois, etc. in EPICS_MCA::
+;           WRITE_FILE, since this was done again in MCA::WRITE_FILE.
+;           Changed many calls from caGet to caGetArray.  This eliminates the
+;           need for caSetMonitor which was slowing things down at startup.
+;           
 ;-
 ;
 
@@ -67,18 +79,20 @@ function epics_mca::get_calibration
 ;       Written by:     Mark Rivers, October 1, 1997
 ;       19-Sep-1998 MLR  Added caStartGroup, caEndGroup for efficiency
 ;-
-    caStartGroup
-    t = caget(self.record_name+'.CALO', offset)
-    t = caget(self.record_name+'.CALS', slope)
-    t = caget(self.record_name+'.CALQ', quad)
-    t = caget(self.record_name+'.EGU',  units)
-    t = caget(self.record_name+'.TTH',  two_theta)
-    t = caEndGroup()
-    self.calibration.offset = offset
-    self.calibration.slope = slope
-    self.calibration.quad = quad
-    self.calibration.units = string(units)
-    self.calibration.two_theta = two_theta
+    pvs = strarr(5)
+    ; Must fetch numbers as doubles, not strings, because of precision
+    pvs[0]=self.record_name+'.CALO'
+    pvs[1]=self.record_name+'.CALS'
+    pvs[2]=self.record_name+'.CALQ'
+    pvs[3]=self.record_name+'.TTH'
+    pvs[4]=self.record_name+'.EGU'
+    t = caGetArray(pvs[0:3], dvals)
+    t = caGetArray(pvs[4], svals, /string)
+    self.calibration.offset = dvals[0]
+    self.calibration.slope = dvals[1]
+    self.calibration.quad = dvals[2]
+    self.calibration.two_theta = dvals[3]
+    self.calibration.units = svals[0]
     return, self->mca::get_calibration()
 end
 
@@ -115,13 +129,11 @@ pro epics_mca::set_calibration, calibration
 ;                        we are now using (ezcaPutOldCa)
 ;-
     self->mca::set_calibration, calibration
-    ;caStartGroup
     t = caput(self.record_name+'.CALO', self.calibration.offset)
     t = caput(self.record_name+'.CALS', self.calibration.slope)
     t = caput(self.record_name+'.CALQ', self.calibration.quad)
     t = caput(self.record_name+'.EGU',  self.calibration.units)
     t = caput(self.record_name+'.TTH',  self.calibration.two_theta)
-    ;t = caEndGroup()
 end
 
 
@@ -169,21 +181,25 @@ function epics_mca::get_elapsed, new_flag, check_new=check_new
 ;       15-APR-1999 MLR Changed from using catimestamp to reading the .STIM
 ;                       field of the record
 ;       16-MAY-1999 MLR Added .read_time field
+;       28-SEP-2001 MLR Added caStartGroup and caEndGroup
 ;-
     if keyword_set(CHECK_NEW) then begin
         new_flag = cacheckmonitor(self.record_name + '.ERTM')
         if (new_flag eq 0) then return, -1
     endif
-    t = caget(self.record_name+'.ERTM', real)
-    t = caget(self.record_name+'.ELTM', live)
-    t = caget(self.record_name+'.ACT', tot)
-    t = caget(self.record_name+'.STIM', time)
-    t = caget(self.record_name+'.RTIM', read_time)
-    self.elapsed.real_time = real
-    self.elapsed.live_time = live
-    self.elapsed.total_counts = tot
-    self.elapsed.start_time = strtrim(time,2)
-    self.elapsed.read_time = read_time
+    pvs = strarr(5)
+    pvs[0]=self.record_name+'.ERTM'
+    pvs[1]=self.record_name+'.ELTM'
+    pvs[2]=self.record_name+'.ACT'
+    pvs[3]=self.record_name+'.RTIM'
+    pvs[4]=self.record_name+'.STIM'
+    t=caGetArray(pvs[0:3], dvals, /double)
+    t=caGetArray(pvs[4], svals, /string)
+    self.elapsed.real_time    = dvals[0]
+    self.elapsed.live_time    = dvals[1]
+    self.elapsed.total_counts = dvals[2]
+    self.elapsed.read_time    = dvals[3]
+    self.elapsed.start_time = strtrim(svals[0],2)
     return, self->mca::get_elapsed()
 end
 
@@ -217,24 +233,24 @@ function epics_mca::get_presets
 ;       Written by:     Mark Rivers, October 1, 1997
 ;       19-Sep-1998 MLR  Added caStartGroup, caEndGroup for efficiency
 ;-
-    caStartGroup
-    t = caget( self.record_name + '.PRTM',  real)
-    t = caget( self.record_name + '.PLTM',  live)
-    t = caget( self.record_name + '.PCT',   counts)
-    t = caget( self.record_name + '.PCTL',  low)
-    t = caget( self.record_name + '.PCTH',  high)
-    t = caget( self.record_name + '.DWEL',  dwell)
-    t = caget( self.record_name + '.CHAS',  channel_advance)
-    t = caget( self.record_name + '.PSCL',  prescale)
-    t = caEndGroup()
-    self.presets.real_time = real
-    self.presets.live_time = live
-    self.presets.total_counts = counts
-    self.presets.start_channel = low
-    self.presets.end_channel = high
-    self.presets.dwell = dwell
-    self.presets.channel_advance = channel_advance
-    self.presets.prescale = prescale
+    pvs = strarr(8)
+    pvs[0]=self.record_name + '.PRTM'
+    pvs[1]=self.record_name + '.PLTM'
+    pvs[2]=self.record_name + '.PCT'
+    pvs[3]=self.record_name + '.PCTL'
+    pvs[4]=self.record_name + '.PCTH'
+    pvs[5]=self.record_name + '.DWEL'
+    pvs[6]=self.record_name + '.CHAS'
+    pvs[7]=self.record_name + '.PSCL'
+    t = caGetArray(pvs, vals, /double)
+    self.presets.real_time = vals[0]
+    self.presets.live_time = vals[1]
+    self.presets.total_counts = vals[2]
+    self.presets.start_channel = vals[3]
+    self.presets.end_channel = vals[4]
+    self.presets.dwell = vals[5]
+    self.presets.channel_advance = vals[6]
+    self.presets.prescale = vals[7]
     return, self->mca::get_presets()
 end
 
@@ -271,7 +287,6 @@ pro epics_mca::set_presets, presets
 ;                        we are now using (ezcaPutOldCa)
 ;-
     self->mca::set_presets, presets
-    ;caStartGroup
     t = caput( self.record_name + '.PRTM',  self.presets.real_time)
     t = caput( self.record_name + '.PLTM',  self.presets.live_time)
     t = caput( self.record_name + '.PCT',   self.presets.total_counts)
@@ -280,7 +295,6 @@ pro epics_mca::set_presets, presets
     t = caput( self.record_name + '.DWEL',  self.presets.dwell)
     t = caput( self.record_name + '.CHAS',  self.presets.channel_advance)
     t = caput( self.record_name + '.PSCL',  self.presets.prescale)
-    ;t = caEndGroup()
 end
 
 
@@ -371,29 +385,41 @@ function epics_mca::get_rois, roi_info, energy=energy
 ;       Written by:     Mark Rivers, October 1, 1997
 ;       19-Sep-1998 MLR  Added caStartGroup, caEndGroup for efficiency
 ;       25-Sep-1998 MLR  Added ENERGY keyword
+;       28-Sep-2001 MLR  Re-wrote to use caGetArray, factor of 32 speed improvement
 ;-
     ; Read ROIs from record
     self.nrois = 0
+    pvs = strarr(self.max_rois, 3)
     for i=0, self.max_rois-1 do begin
-      caStartGroup
-      field = '.R' + strtrim(string(i),2) + 'LO'
-      t = caget(self.record_name + field, left)
-      field = '.R' + strtrim(string(i),2) + 'HI'
-      t = caget(self.record_name + field, right)
-      field = '.R' + strtrim(string(i),2) + 'NM'
-      t = caget(self.record_name + field, label)
-      field = '.R' + strtrim(string(i),2) + 'BG'
-      t = caget(self.record_name + field, bgd_width)
-      t = caEndGroup()
-      if ((left ge 0) and (right gt 0)) then begin
+        ; Read the ROI numeric data
+        pvs[i, 0] = self.record_name + '.R' + strtrim(string(i),2) + 'LO'
+        pvs[i, 1] = self.record_name + '.R' + strtrim(string(i),2) + 'HI'
+        pvs[i, 2] = self.record_name + '.R' + strtrim(string(i),2) + 'BG'
+    endfor
+;    t = caMonitor(pvs, lvals, /get, /long)
+    t = caGetArray(pvs, lvals, /long)
+    pvs = strarr(self.max_rois)
+    for i=0, self.max_rois-1 do begin
+        ; Read the string data
+        pvs[i] = self.record_name + '.R' + strtrim(string(i),2) + 'NM'
+    endfor
+    t = caGetArray(pvs, svals, /string)
+    ; Need to eliminate leading 1 dimension and make 3 rows
+    lvals = reform(lvals, self.max_rois, 3)
+    for i=0, self.max_rois-1 do begin
+        left  = lvals[i, 0]
+        right = lvals[i, 1]
+        bgd_width = lvals[i, 2]
+        label = string(svals[i])
+        if ((left ge 0) and (right gt 0)) then begin
             roi = {MCA_ROI}
             roi.left = left
             roi.right = right
-            roi.label = string(label)
+            roi.label = label
             roi.bgd_width = bgd_width
             roi.use = 1
             status = self->mca::add_roi(roi)
-      endif
+        endif
     endfor
     return, self->mca::get_rois(roi_info, energy=energy)
 end
@@ -442,14 +468,15 @@ pro epics_mca::get_roi_counts, total, net
     nrois = self.nrois > 1
     total = fltarr(nrois)
     net = fltarr(nrois)
+    pvs = strarr(self.nrois,2)
     for i=0, self.nrois-1 do begin
-      field = '.R' + strtrim(string(i),2)
-      t = caget(self.record_name + field, temp)
-      total[i] = temp
-      field = '.R' + strtrim(string(i),2) + 'N'
-      t = caget(self.record_name + field, temp)
-      net[i] = temp
+        pvs[i,0] =  self.record_name + '.R' + strtrim(string(i),2)
+        pvs[i,1] =  self.record_name + '.R' + strtrim(string(i),2) + 'N'
     endfor
+    t = caGetArray(pvs, vals)
+    vals = reform(vals, self.nrois, 2)
+    total = vals[*,0]
+    net = vals[*,1]
 end
 
 
@@ -561,31 +588,87 @@ pro epics_mca::set_rois, rois, energy=energy
 ;       17-Sep-1998 MLR  Removed caStartGroup, caEndGroup, since these don't
 ;                        work with the non-callback version of caput, which
 ;                        we are now using (ezcaPutOldCa)
+;       28-Sep-2001 MLR  Changed to using caPutArray, much faster.
 ;-
     self->mca::set_rois, rois, energy=energy
-    ;caStartGroup
-    ;stop
+    pvs  = strarr(self.max_rois, 4)
+    vals = strarr(self.max_rois, 4)
     for i=0, self.nrois-1 do begin
-        field = '.R' + strtrim(string(i),2) + 'LO'
-        t = caput(self.record_name + field, self.roi(i).left)
-        field = '.R' + strtrim(string(i),2) + 'HI'
-        t = caput(self.record_name + field, self.roi(i).right)
-        field = '.R' + strtrim(string(i),2) + 'NM'
-        t = caput(self.record_name + field, self.roi(i).label)
-        field = '.R' + strtrim(string(i),2) + 'BG'
-        t = caput(self.record_name + field, self.roi(i).bgd_width)
+        pvs[i, 0]  = self.record_name + '.R' + strtrim(string(i),2) + 'LO'
+        vals[i, 0] = self.roi(i).left
+        pvs[i, 1]  = self.record_name + '.R' + strtrim(string(i),2) + 'HI'
+        vals[i, 1] = self.roi(i).right
+        pvs[i, 2]  = self.record_name + '.R' + strtrim(string(i),2) + 'NM'
+        vals[i, 2] = self.roi(i).label
+        pvs[i, 3]  = self.record_name + '.R' + strtrim(string(i),2) + 'BG'
+        vals[i, 3] = self.roi(i).bgd_width
     endfor
     for i=self.nrois, self.max_rois-1 do begin
-        field = '.R' + strtrim(string(i),2) + 'LO'
-        t = caput(self.record_name + field, -1)
-        field = '.R' + strtrim(string(i),2) + 'HI'
-        t = caput(self.record_name + field, -1)
-        field = '.R' + strtrim(string(i),2) + 'NM'
-        t = caput(self.record_name + field, '')
+        pvs[i, 0]  = self.record_name + '.R' + strtrim(string(i),2) + 'LO'
+        vals[i, 0] = "-1"
+        pvs[i, 1]  = self.record_name + '.R' + strtrim(string(i),2) + 'HI'
+        vals[i, 1] = "-1"
+        pvs[i, 2]  = self.record_name + '.R' + strtrim(string(i),2) + 'NM'
+        vals[i, 2] = " "
+        pvs[i, 3]  = self.record_name + '.R' + strtrim(string(i),2) + 'BG'
+        vals[i, 3] = 0
     endfor
-    ;t = caEndGroup()
+    ; Need to make vals into a 1xN array, or caPutArray thinks we are writing
+    ; an array of values to each PV
+    vals = reform(vals, 1, self.max_rois*4)
+    t = caPutArray(pvs, vals)
 end
 
+
+;*****************************************************************************
+function epics_mca::get_environment, count, name=name, description=description
+;+
+; NAME:
+;       EPICS_MCA::GET_ENVIRONMENT
+;
+; PURPOSE:
+;       This function gets the environment parameters for the MCA.
+;       The environment information is contained in an array of structures 
+;       of type MCA_ENVIRONMENT.
+;
+; CATEGORY:
+;       IDL device class library.
+;
+; CALLING SEQUENCE:
+;       Result = epics_mca->GET_ENVIRONMENT()
+;
+; PROCEDURE:
+;       This function reads the environment information from EPICS 
+;       and then invokes MCA::GET_ENVIRONMENT
+;
+; KEYWORD PARAMETERS:
+;       This function accepts all of the keyword paramters used by 
+;       MCA::GET_ENVIRONMENT
+;
+; ADDITIONAL INFORMATION:
+;       See <A HREF="mca_class.html#MCA::GET_ENVIRONMENT">MCA::GET_ENVIRONMENT()</A>.
+;
+; EXAMPLE:
+;       mca = obj_new('EPICS_MCA', '13IDC:aim_adc1')
+;       env = mca->GET_ENVIRONMENT(count)
+;       ; Get all environment variables
+;       help, /structure, env[0]
+;       ; Get all of the sample information
+;       env = mca->GET_ENVIRONMENT(DESCRIPTION='Sample', count)
+;       for i=0, count-1 do print, env[i].name, '=', env[i].value
+;
+; MODIFICATION HISTORY:
+;       Written by:     Mark Rivers, Sept. 29, 2001.  Put this code here
+;                       and deleted from the MCA::WRITE_FILE routines.
+;-
+    if (ptr_valid(self.environment)) then begin
+        n_env = n_elements(*self.environment)
+        status = caGetArray((*self.environment).name, values, /string)
+        (*self.environment).value = reform(values)
+    endif
+    return, self->mca::get_environment(count, $
+                                       name=name, description=description)
+end
 
 ;*****************************************************************************
 function epics_mca::get_data, new_flag, check_new=check_new
@@ -976,11 +1059,9 @@ pro epics_mca::write_file, file
 ;
 ; MODIFICATION HISTORY:
 ;       Written by:     Mark Rivers, January 17, 1998
+;       MLR 29-SEP-2001 Removed calls to read elapsed, calibration, rois, and
+;                       data, since this is done in MCA::WRITE_FILE.
 ;-
-    t = self->get_elapsed()
-    t = self->get_rois()
-    t = self->get_calibration()
-    t = self->get_data()
     self->mca::write_file, file
     ; Reset the client wait flag in case it is set
     t = caput(self.record_name + 'ClientWait', 0)
@@ -1140,54 +1221,23 @@ function epics_mca::init, record_name, environment_file=environment_file
     t = self->mca::init()
     self.record_name = record_name
     self.name = record_name
-    status = caget( self.record_name, temp, max = 1)  ; see if it exists
+    status = caget( self.record_name + '.NUSE', nuse) ; see if it exists
     if status ne 0 then begin                       ; it does not exist
         return, 0
     endif
-    status = caget( self.record_name + '.NUSE', temp)
-    self.nchans = temp > 1
+    self.nchans = nuse > 1
     self.data(0 : self.nchans-1L) = 0L
     ; Set channel access monitors on all fields we will be reading
-    ;caStartGroup
+    ; with simple caGet, or with caCheckMonitor
     t = casetmonitor(self.record_name + '.ACQG')
     t = casetmonitor(self.record_name + '.VAL')
     t = casetmonitor(self.record_name + '.NUSE')
     t = casetmonitor(self.record_name + '.ERTM')
-    t = casetmonitor(self.record_name + '.ELTM')
-    t = casetmonitor(self.record_name + '.STIM')
-    t = casetmonitor(self.record_name + '.RTIM')
-    t = casetmonitor(self.record_name + '.ACT')
-    t = casetmonitor(self.record_name + '.PRTM')
-    t = casetmonitor(self.record_name + '.PLTM')
-    t = casetmonitor(self.record_name + '.PCT')
-    t = casetmonitor(self.record_name + '.PCTL')
-    t = casetmonitor(self.record_name + '.PCTH')
-    t = casetmonitor(self.record_name + '.DWEL')
-    t = casetmonitor(self.record_name + '.CHAS')
-    t = casetmonitor(self.record_name + '.PSCL')
-    t = casetmonitor(self.record_name + '.CALO')
-    t = casetmonitor(self.record_name + '.CALS')
-    t = casetmonitor(self.record_name + '.CALQ')
-    t = casetmonitor(self.record_name + '.EGU')
-    t = casetmonitor(self.record_name + '.TTH')
-;    for i=0, self.max_rois-1 do begin
-;      field = '.R' + strtrim(string(i),2)
-;      t = casetmonitor(self.record_name + field)
-;      field = '.R' + strtrim(string(i),2) + 'N'
-;      t = casetmonitor(self.record_name + field)
-;      field = '.R' + strtrim(string(i),2) + 'LO'
-;      t = casetmonitor(self.record_name + field)
-;      field = '.R' + strtrim(string(i),2) + 'HI'
-;      t = casetmonitor(self.record_name + field)
-;      field = '.R' + strtrim(string(i),2) + 'BG'
-;      t = casetmonitor(self.record_name + field)
-;      field = '.R' + strtrim(string(i),2) + 'NM'
-;      t = casetmonitor(self.record_name + field)
-;    endfor
-;    t = caEndGroup()
-     t = self->get_calibration()
-;    t = self->get_presets()
-;    t = self->get_rois()
+
+;   Need to read calibration initially so that MCA::CHAN_TO_ENERGY, etc. work
+    t = self->get_calibration()
+    t = self->get_presets()  ; May not need to read presets, does not hurt
+    t = self->get_rois()     ; Need to do so MCA::ADD_ROI, etc. will work
 
 ;   Read the environment file
     if n_elements(environment_file) eq 0 then environment_file = 'catch1d.env'
