@@ -71,7 +71,8 @@
 ;       MLR     7/18/01     Version 4.3.16 Fixed bug which caused energy calibration
 ;                           and ROIs to be incorrect when reading MED spectra for
 ;                           any but the first detector.
-;
+;       MLR    11/21/01     Version 4.3.17  Fixed problem with IDL 5.5 in
+;                           peak fits looking up XRF lines
 ;
 
 
@@ -1123,10 +1124,11 @@ pro mca_display::peak_fit_event, event
         end
 
         widgets.label: begin
-            peaks[index].label = strtrim(event.value,2)
+            label = strtrim(event.value[0],2)
+            peaks[index].label = label
             ; See if this is an XRF or gamma line
-            energy = lookup_xrf_line(event.value)
-            if (energy eq 0.) then energy = lookup_gamma_line(event.value)
+            energy = lookup_xrf_line(label)
+            if (energy eq 0.) then energy = lookup_gamma_line(label)
             if (energy gt 0.) then begin
                 peaks[index].initial_energy=energy
                 ; Set the energy flag to 0, since energy is known
@@ -3627,8 +3629,8 @@ function mca_display::init, font_size=font_size, parent=parent
     mca=obj_new('mca')   ; Dummy MCA object
     if (n_elements(parent) ne 0) then spawned=1 else spawned=0
 
-    self.options.version = '4.3.15' ; Version number of program
-    self.options.date = 'March 20, 2001' ; Modification date of program
+    self.options.version = '4.3.17' ; Version number of program
+    self.options.date = 'November 21, 2001' ; Modification date of program
     self.options.warn_overwrite = 1L
                             ; Warn user of attempt to overwrite existing file
 
