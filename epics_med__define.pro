@@ -128,6 +128,50 @@ function epics_med::get_acquire_status, update=update
     return, self->mca::get_acquire_status()
 end
 
+;*****************************************************************************
+function epics_med::get_environment, count, name=name, description=description
+;+
+; NAME:
+;       EPICS_MED::GET_ENVIRONMENT
+;
+; PURPOSE:
+;       This function gets the environment parameters for the MED.
+;       The environment information is contained in an array of structures 
+;       of type MCA_ENVIRONMENT.
+;
+; CATEGORY:
+;       IDL device class library.
+;
+; CALLING SEQUENCE:
+;       Result = epics_med->GET_ENVIRONMENT()
+;
+; PROCEDURE:
+;       This function simply returns EPICS_MCA::GET_ENVIRONMENT for the
+;       for EPICS_MCA in the EPICS_MED.
+;
+; KEYWORD PARAMETERS:
+;       This function accepts all of the keyword paramters used by 
+;       MCA::GET_ENVIRONMENT
+;
+; ADDITIONAL INFORMATION:
+;       See <A HREF="mca_class.html#MCA::GET_ENVIRONMENT">MCA::GET_ENVIRONMENT()</A>.
+;
+; EXAMPLE:
+;       med = obj_new('EPICS_MED', '13GE1:med:')
+;       env = med->GET_ENVIRONMENT(count)
+;       ; Get all environment variables
+;       help, /structure, env[0]
+;       ; Get all of the sample information
+;       env = med->GET_ENVIRONMENT(DESCRIPTION='Sample', count)
+;       for i=0, count-1 do print, env[i].name, '=', env[i].value
+;
+; MODIFICATION HISTORY:
+;       Written by:     Mark Rivers, Sept. 29, 2001.  Put this code here
+;                       and deleted from the MCA::WRITE_FILE routines.
+;-
+    return, self.mca_objs[0]->get_environment(count, $
+                                       name=name, description=description)
+end
     
 ;*****************************************************************************
 pro epics_med::acquire_wait, dwell_time, start=start
@@ -287,7 +331,6 @@ pro epics_med::acquire_off
     t = caput(self.pvs.stop, 1)
 end
 
-
 
 ;*****************************************************************************
 function epics_med::get_data, total=total, align=align
