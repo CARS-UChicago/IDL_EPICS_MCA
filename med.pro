@@ -175,10 +175,11 @@ return
 end
 
 
-pro med, detector=detector, use=use
+pro med, detector=detector, use=use, env_file=env_file, no_gcd=no_gcd
 ;
 ; GUI control of Multi-Element-Detector
 ;
+
 det      = '13GE2:med:'
 elem     = 2
 status   = 'Ready'
@@ -193,10 +194,13 @@ if (keyword_set(use) ne 0 ) then begin
    if (use_det eq 'ge2') then det = '13GE2:med:'
 endif
 
-if (keyword_set(detector) ne 0 ) then det = detector
+if (keyword_set(detector) ne 0) then det = detector
+if (n_elements(env_file)  eq 0) then begin
+  env_file = '//cars5.cars.aps.anl.gov/Data/xas_user/config/13idc_med_environment.dat'
+endif
 
-; 
-gcd
+; gcd
+
 
 med_disp= obj_new()
 med     = obj_new()
@@ -331,7 +335,7 @@ Widget_Control, (*p).form.time_rbv, set_value  = ' '
 
 dmca  = (*p).det + 'mca' + strtrim(string((*p).elem),2)
 (*p).med_disp->open_detector, dmca
-(*p).med = obj_new('EPICS_MED', det)
+(*p).med = obj_new('EPICS_MED', det,environment_file=env_file)
 
 ;
 ; when objects are really created, report 'Ready'.
