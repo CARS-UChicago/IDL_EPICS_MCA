@@ -3183,10 +3183,13 @@ pro mca_display::update_spectrum, rescale = rescale
     for i = 0, self.foreground.nrois-1 do begin
         left = self.foreground.roi[i].left
         right = self.foreground.roi[i].right
-        chans = left + indgen(right-left+1)
-        oplot, chans, self.foreground.data[left:right] > $
-            self.display.vmin,                $ ; show zeroes
-            color = self.colors.roi, psym = self.display.psym
+; MN 20 Mar 2002: add check for valid ROI boundaries
+        if (right gt left) then begin
+            chans = left + indgen(right-left+1)
+            oplot, chans, self.foreground.data[left:right] > $
+              self.display.vmin,                $ ; show zeroes
+              color = self.colors.roi, psym = self.display.psym
+        endif
     endfor
     ;
     ; Now copy the pixmap into the visible window.
