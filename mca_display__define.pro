@@ -218,17 +218,28 @@ end
 pro mca_display_cleanup, dying_id ; called after widget hierarchy destroyed
 
     widget_control, dying_id, get_uvalue=mca_display
-    obj_destroy, mca_display
+    ; The following causes error"
+    ; OBJ_DESTROY: Attempt to destroy an object within its INIT method:
+    ;              <ObjHeapVar4(MCA_DISPLAY)>.
+    ; on IDL 6.0 VM on Linux.
+    ; obj_destroy, mca_display
+    ; Instead call new function, cleanup1 directly
+    mca_display->cleanup1
 end
 
 
 ;*****************************************************************************
-pro mca_display::cleanup
+pro mca_display::cleanup1
 
     wdelete, self.windows.pixmap
     self->save_prefs
     obj_destroy, self.foreground.mca
     obj_destroy, self.background.mca
+end
+
+;*****************************************************************************
+pro mca_display::cleanup
+    self->cleanup1
 end
 
 
@@ -380,7 +391,7 @@ pro mca_display::select_det, n_det, detector
     x = geometry.xoffset + geometry.xsize/2
     y = geometry.yoffset + geometry.ysize/2
     base = widget_base( title = 'Select detector  ', xoffset=x, yoffset=y, $
-                        group = self.widgets.base, /row)
+                        group = self.widgets.base, /row, /modal)
     widgets = {label: 0L, list: 0L}
     widgets.label = widget_label(base, value='Select detector to display:')
     choices = ['Det. '+strtrim(indgen(n_det) + 1, 2), 'Total']
@@ -443,6 +454,7 @@ pro mca_display::open_file, file, background=background
     if (n_det eq 1) then begin
         mca = mcas[0]
     endif else begin ; Multi-element detector
+        detector = 0
         self->select_det, n_det, detector
         if (detector lt n_det) then begin
             mca = mcas[detector]
