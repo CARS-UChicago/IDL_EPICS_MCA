@@ -19,11 +19,11 @@ pro med::initial_calibration, energy
 ;       Energy:  The energy of the largest peak in the spectrum.
 ;
 ; PROCEDURE:
-;       This function simply invokes MCA::INITIAL_CALIBRATION for each MCA in 
+;       This function simply invokes MCA::INITIAL_CALIBRATION for each MCA in
 ;       the MED.
 ;
 ; ADDITIONAL INFORMATION:
-;       See <A HREF="mca_class.html#MCA::INITIAL_CALIBRATION">MCA::INITIAL_CALIBRATION</A>.  
+;       See <A HREF="mca_class.html#MCA::INITIAL_CALIBRATION">MCA::INITIAL_CALIBRATION</A>.
 ;
 ; MODIFICATION HISTORY:
 ;       Written by:     Mark Rivers, Sept. 25, 1998
@@ -59,11 +59,11 @@ pro med::final_calibration, peaks
 ;               read from a disk file with function READ_PEAKS().
 ;
 ; PROCEDURE:
-;       This function simply invokes MCA::FINAL_CALIBRATION for each MCA in 
+;       This function simply invokes MCA::FINAL_CALIBRATION for each MCA in
 ;       the MED.
 ;
 ; ADDITIONAL INFORMATION:
-;       See <A HREF="mca_class.html#MCA::FINAL_CALIBRATION">MCA::FINAL_CALIBRATION</A>.  
+;       See <A HREF="mca_class.html#MCA::FINAL_CALIBRATION">MCA::FINAL_CALIBRATION</A>.
 ;
 ; MODIFICATION HISTORY:
 ;       Written by:     Mark Rivers, Sept. 25, 1998
@@ -82,7 +82,7 @@ pro med::set_calibration, calibration
 ;
 ; PURPOSE:
 ;       This procedure sets the calibration parameters for the MED.
-;       The calibration information is contained in a structure or an array 
+;       The calibration information is contained in a structure or an array
 ;       of structures of type MCA_CALIBRATION.
 ;
 ; CATEGORY:
@@ -93,8 +93,8 @@ pro med::set_calibration, calibration
 ;       med->SET_CALIBRATION, Calibration
 ;
 ; INPUTS:
-;       Calibration:  A single structure or an array of structures of type 
-;                     MCA_CALIBRATION containing the calibration parameters 
+;       Calibration:  A single structure or an array of structures of type
+;                     MCA_CALIBRATION containing the calibration parameters
 ;                     for each MCA.  If a single structure is passed then this
 ;                     is written to each MCA.  If an array of structures is
 ;                     passed then Calibration[i] is written to MCA[i].
@@ -104,7 +104,7 @@ pro med::set_calibration, calibration
 ;       MED.
 ;
 ; ADDITIONAL INFORMATION:
-;       See <A HREF="mca_class.html#MCA::SET_CALIBRATION">MCA::SET_CALIBRATION</A>.  
+;       See <A HREF="mca_class.html#MCA::SET_CALIBRATION">MCA::SET_CALIBRATION</A>.
 ;
 ; MODIFICATION HISTORY:
 ;       Written by:     Mark Rivers, Sept. 25, 1998
@@ -137,7 +137,7 @@ function med::get_energy
 ;       Result = med->GET_ENERGY()
 ;
 ; OUTPUTS:
-;       This function returns a 2-D float array, dimensioned 
+;       This function returns a 2-D float array, dimensioned
 ;       [self.nchans, self.n_detectors]
 ;
 ; PROCEDURE:
@@ -145,7 +145,7 @@ function med::get_energy
 ;       MED and stores the results in the returned array.
 ;
 ; ADDITIONAL INFORMATION:
-;       See <A HREF="mca_class.html#MCA::GET_ENERGY">MCA::GET_ENERGY()</A>.  
+;       See <A HREF="mca_class.html#MCA::GET_ENERGY">MCA::GET_ENERGY()</A>.
 ;
 ; MODIFICATION HISTORY:
 ;       Written by:     Mark Rivers, Sept. 27, 1998
@@ -183,7 +183,7 @@ function med::get_calibration
 ;       MED and stores the results in the returned array.
 ;
 ; ADDITIONAL INFORMATION:
-;       See <A HREF="mca_class.html#MCA::GET_CALIBRATION">MCA::GET_CALIBRATION()</A>.  
+;       See <A HREF="mca_class.html#MCA::GET_CALIBRATION">MCA::GET_CALIBRATION()</A>.
 ;
 ; MODIFICATION HISTORY:
 ;       Written by:     Mark Rivers, Sept. 25, 1998
@@ -248,7 +248,7 @@ function med::get_elapsed
 ;       and stores the results in the returned array.
 ;
 ; ADDITIONAL INFORMATION:
-;       See <A HREF="mca_class.html#MCA::GET_ELAPSED">MCA::GET_ELAPSED()</A>.  
+;       See <A HREF="mca_class.html#MCA::GET_ELAPSED">MCA::GET_ELAPSED()</A>.
 ;
 ; MODIFICATION HISTORY:
 ;       Written by:     Mark Rivers, Sept. 25, 1998
@@ -269,7 +269,7 @@ pro med::set_elapsed, elapsed
 ;
 ; PURPOSE:
 ;       This procedure set the elapsed parameters for the MED.
-;       The elapsed information is contained in a structure or an array of 
+;       The elapsed information is contained in a structure or an array of
 ;       structures of type MCA_ELAPSED.
 ;
 ; CATEGORY:
@@ -279,17 +279,17 @@ pro med::set_elapsed, elapsed
 ;       med->SET_ELAPSED(), Elapsed
 ;
 ; INPUTS:
-;       Elapsed:  A single structure or an array of structures of type 
+;       Elapsed:  A single structure or an array of structures of type
 ;                 MCA_ELAPSED containing the elapsed parameters for each MCA.
-;                 If a single structure is passed then this is written to 
-;                 each MCA.  If an array of structures is passed then 
+;                 If a single structure is passed then this is written to
+;                 each MCA.  If an array of structures is passed then
 ;                 Elapsed[i] is written to MCA[i].
 ;
 ; PROCEDURE:
 ;       This function simply invokes MCA::SET_ELAPSED for each MCA in the MED.
 ;
 ; ADDITIONAL INFORMATION:
-;       See <A HREF="mca_class.html#MCA::SET_ELAPSED">MCA::SET_ELAPSED()</A>.  
+;       See <A HREF="mca_class.html#MCA::SET_ELAPSED">MCA::SET_ELAPSED()</A>.
 ;
 ; MODIFICATION HISTORY:
 ;       Written by:     Mark Rivers, Sept. 25, 1998
@@ -327,7 +327,7 @@ function med::get_presets
 ;       and stores the output in the returned array.
 ;
 ; ADDITIONAL INFORMATION:
-;       See <A HREF="mca_class.html#MCA::GET_PRESETS">MCA::GET_PRESETS()</A>.  
+;       See <A HREF="mca_class.html#MCA::GET_PRESETS">MCA::GET_PRESETS()</A>.
 ;
 ; MODIFICATION HISTORY:
 ;       Written by:     Mark Rivers, Sept. 25, 1998
@@ -358,10 +358,10 @@ pro med::set_presets, presets
 ;       med->SET_PRESETS, Presets
 ;
 ; INPUTS:
-;       Presets:  A single structure or an array of structures of type 
+;       Presets:  A single structure or an array of structures of type
 ;                 MCA_PRESETS containing the preset parameters for each MCA.
-;                 If a single structure is passed then this is written to 
-;                 each MCA.  If an array of structures is passed then 
+;                 If a single structure is passed then this is written to
+;                 each MCA.  If an array of structures is passed then
 ;                 Presets[i] is written to MCA[i].
 ;
 ;
@@ -369,7 +369,7 @@ pro med::set_presets, presets
 ;       This function simply invokes MCA::SET_PRESETS for each MCA in the MED.
 ;
 ; ADDITIONAL INFORMATION:
-;       See <A HREF="mca_class.html#MCA::SET_PRESETS">MCA::SET_PRESETS</A>.  
+;       See <A HREF="mca_class.html#MCA::SET_PRESETS">MCA::SET_PRESETS</A>.
 ;
 ; MODIFICATION HISTORY:
 ;       Written by:     Mark Rivers, Sept. 28, 1998
@@ -392,8 +392,8 @@ function med::get_sequence
 ;       MED::GET_SEQUENCE
 ;
 ; PURPOSE:
-;       This function returns the current sequence number for each MCA in the 
-;       MED.  Sequences are used for time resolved spectroscopy, and refer to 
+;       This function returns the current sequence number for each MCA in the
+;       MED.  Sequences are used for time resolved spectroscopy, and refer to
 ;       different regions of MCA memory for data acquistion and readout.
 ;
 ; CATEGORY:
@@ -411,7 +411,7 @@ function med::get_sequence
 ;       and stores the result in the returned array.
 ;
 ; ADDITIONAL INFORMATION:
-;       See <A HREF="mca_class.html#MCA::GET_SEQUENCE">MCA::GET_SEQUENCE</A>.  
+;       See <A HREF="mca_class.html#MCA::GET_SEQUENCE">MCA::GET_SEQUENCE</A>.
 ;
 ; MODIFICATION HISTORY:
 ;       Written by:     Mark Rivers, Sept. 25, 1998
@@ -431,8 +431,8 @@ pro med::set_sequence, sequence
 ;      MED::SET_SEQUENCE
 ;
 ; PURPOSE:
-;       This procedure sets the current sequence number for each MCA in the 
-;       MED.  Sequences are used for time resolved spectroscopy, and refer to 
+;       This procedure sets the current sequence number for each MCA in the
+;       MED.  Sequences are used for time resolved spectroscopy, and refer to
 ;       different regions of MCA memory for data acquistion and readout.
 ;
 ; CATEGORY:
@@ -443,15 +443,15 @@ pro med::set_sequence, sequence
 ;
 ; INPUTS:
 ;       Sequence: A scalar or array of sequence numbers.
-;                 If a single sequence number is passed then this is written to 
-;                 each MCA.  If an array of sequences is passed then 
+;                 If a single sequence number is passed then this is written to
+;                 each MCA.  If an array of sequences is passed then
 ;                 Sequence[i] is written to MCA[i].
 ;
 ; PROCEDURE:
 ;       This function simply invokes MCA::SET_SEQUENCE for each MCA in the MED.
 ;
 ; ADDITIONAL INFORMATION:
-;       See <A HREF="mca_class.html#MCA::SET_SEQUENCE">MCA::SET_SEQUENCE</A>.  
+;       See <A HREF="mca_class.html#MCA::SET_SEQUENCE">MCA::SET_SEQUENCE</A>.
 ;
 ; MODIFICATION HISTORY:
 ;       Written by:     Mark Rivers, Sept. 25, 1998
@@ -475,7 +475,7 @@ function med::get_rois, roi_info, energy=energy
 ;
 ; PURPOSE:
 ;       This function returns the region-of-interest information for each MCA
-;       in the MED. The ROI information is contained in an array of structures 
+;       in the MED. The ROI information is contained in an array of structures
 ;       of type MCA_ROI.  Additional information about the number of ROIs
 ;       defined for each MCA is returned in an array of structures of type
 ;       MCA_ROI_INFO.
@@ -490,7 +490,7 @@ function med::get_rois, roi_info, energy=energy
 ;       This function returns a 2-D array of structures of type MCA_ROI.  The
 ;       dimensions of this array are [self.n_detectors, self.MAX_ROIS].
 ;
-;       Roi_Info: This optional output is an array of structures of type 
+;       Roi_Info: This optional output is an array of structures of type
 ;                 MCA_ROI_INFO which contains information on the number of
 ;                 rois defined for each MCA.
 ;
@@ -499,7 +499,7 @@ function med::get_rois, roi_info, energy=energy
 ;       and stores the results in the returned arrays.
 ;
 ; ADDITIONAL INFORMATION:
-;       See <A HREF="mca_class.html#MCA::GET_ROIS">MCA::GET_ROIS()</A>.  
+;       See <A HREF="mca_class.html#MCA::GET_ROIS">MCA::GET_ROIS()</A>.
 ;
 ; MODIFICATION HISTORY:
 ;       Written by:     Mark Rivers, Sept. 25, 1998
@@ -542,7 +542,7 @@ pro med::get_roi_counts, total, net
 ;       and stores the results in the returned arrays.
 ;
 ; ADDITIONAL INFORMATION:
-;       See <A HREF="mca_class.html#MCA::GET_ROI_COUNTS">MCA::GET_ROI_COUNTS()</A>.  
+;       See <A HREF="mca_class.html#MCA::GET_ROI_COUNTS">MCA::GET_ROI_COUNTS()</A>.
 ;
 ; MODIFICATION HISTORY:
 ;       Written by:     Mark Rivers, Sept. 25, 1998
@@ -577,7 +577,7 @@ pro med::set_rois, rois, energy=energy
 ;       Rois:  A 1-D or 2-D array of structures of type MCA_ROI.  If Rois is a
 ;              1-D array then the same ROIs are written to each MCA in the
 ;              MED.  If Rois is a 2-D array then Rois[*,i] is written to
-;              detector i. If this input parameter is missing or not defined 
+;              detector i. If this input parameter is missing or not defined
 ;              then all ROIs in each MCA are cleared.
 ;
 ; KEYWORD PARAMETERS:
@@ -590,7 +590,7 @@ pro med::set_rois, rois, energy=energy
 ;       This function simply invokes MCA::SET_ROIS for each MCA in the MED.
 ;
 ; ADDITIONAL INFORMATION:
-;       See <A HREF="mca_class.html#MCA::SET_ROIS">MCA::SET_ROIS</A>.  
+;       See <A HREF="mca_class.html#MCA::SET_ROIS">MCA::SET_ROIS</A>.
 ;
 ; MODIFICATION HISTORY:
 ;       Written by:     Mark Rivers, Sept. 25, 1998
@@ -635,7 +635,7 @@ pro med::add_roi, roi, energy=energy
 ;       This function simply invokes MCA::ADD_ROI for each MCA in the MED.
 ;
 ; ADDITIONAL INFORMATION:
-;       See <A HREF="mca_class.html#MCA::ADD_ROI">MCA::ADD_ROI</A>.  
+;       See <A HREF="mca_class.html#MCA::ADD_ROI">MCA::ADD_ROI</A>.
 ;
 ; MODIFICATION HISTORY:
 ;       Written by:     Mark Rivers, Sept. 25, 1998
@@ -662,14 +662,14 @@ pro med::del_roi, index
 ;       med->DEL_ROI, Index
 ;
 ; INPUTS:
-;       Index:  The index of the ROI to delete in the range 0 to 
+;       Index:  The index of the ROI to delete in the range 0 to
 ;               self.MAX_ROIS-1
 ;
 ; PROCEDURE:
 ;       This function simply invokes MCA::DEL_ROI for each MCA in the MED.
 ;
 ; ADDITIONAL INFORMATION:
-;       See <A HREF="mca_class.html#MCA::DEL_ROI">MCA::DEL_ROI</A>.  
+;       See <A HREF="mca_class.html#MCA::DEL_ROI">MCA::DEL_ROI</A>.
 ;
 ; MODIFICATION HISTORY:
 ;       Written by:     Mark Rivers, Sept. 25, 1998
@@ -703,8 +703,8 @@ pro med::copy_rois, detector, energy=energy
 ;
 ; KEYWORD PARAMETERS:
 ;       ENERGY: Set this keyword if the ROIs should be copied by their position
-;               in energy rather than in channels. This is very useful when 
-;               copying ROIs when the calibration parameters for each MCA in 
+;               in energy rather than in channels. This is very useful when
+;               copying ROIs when the calibration parameters for each MCA in
 ;               the MED are not identical.
 ;
 ; PROCEDURE:
@@ -712,15 +712,21 @@ pro med::copy_rois, detector, energy=energy
 ;       and then MED::SET_ROIS.
 ;
 ; ADDITIONAL INFORMATION:
-;       See <A HREF="mca_class.html#MCA::GET_ROIS">MCA::SET_ROIS</A>.  
+;       See <A HREF="mca_class.html#MCA::GET_ROIS">MCA::SET_ROIS</A>.
 ;
 ; MODIFICATION HISTORY:
 ;       Written by:     Mark Rivers, Sept. 25, 1998
 ;-
+
+
     if (n_elements(detector) eq 0) then det=0 else det = detector-1
-    
+;{mn 10-02-2003:  um, this is sort of weird, but det now needs to be
+;          converted from array of longs to a long scalar
+    det = det[0]
+;}
+
 ;{mn  02-11-99 this seemed to help:
-;    rois = self.mca_objs[det]->get_rois(energy=energy)
+;     rois = self.mca_objs[det]->get_rois(energy=energy)
     rois = self.mca_objs[det]->get_rois(temp, energy=energy)
 ;}
     self->set_rois, rois, energy=energy
@@ -768,7 +774,7 @@ function med::get_data, total=total, align=align
 ;       parameters of the first detector.
 ;
 ; ADDITIONAL INFORMATION:
-;       See <A HREF="mca_class.html#MCA::GET_DATA">MCA::GET_DATA()</A>.  
+;       See <A HREF="mca_class.html#MCA::GET_DATA">MCA::GET_DATA()</A>.
 ;
 ; MODIFICATION HISTORY:
 ;       Written by:     Mark Rivers, Sept. 25, 1998
@@ -799,6 +805,49 @@ function med::get_data, total=total, align=align
         return, d
     endif
     return, data
+end
+
+
+;*****************************************************************************
+pro med::set_data, data
+;+
+; NAME:
+;       MED::SET_DATA
+;
+; PURPOSE:
+;       This procedure writes data to each MCA in the MED
+;
+; CATEGORY:
+;       IDL device class library.
+;
+; CALLING SEQUENCE:
+;       med->SET_DATA, Data
+;
+; INPUTS:
+;       Data:
+;          Data to be written.  Dimensions are either [NCHANS], in which case
+;          the same data are written to each detector, or [NCHANS, NDETECTORS], in
+;          which case Data[*,i] is written to detector i.
+;
+; PROCEDURE:
+;       This procedure simply invokes MCA::SET_DATA for each MCA in the MED.
+;
+; ADDITIONAL INFORMATION:
+;       See <A HREF="mca_class.html#MCA::SET_DATA">MCA::GET_DATA()</A>.
+;
+; MODIFICATION HISTORY:
+;       Written by:     Mark Rivers, Nov. 16, 2003
+;-
+    ndims = size(data, /n_dimensions)
+    if (ndims eq 1) then begin
+       for i=0, self.n_detectors-1 do begin
+          self.mca_objs[i]->set_data, data
+       endfor
+    endif else begin
+       for i=0, self.n_detectors-1 do begin
+          self.mca_objs[i]->set_data, data[*,i]
+       endfor
+    endelse
 end
 
 
