@@ -82,6 +82,9 @@ function epics_mca::get_calibration
 ;       19-Sep-1998 MLR  Added caStartGroup, caEndGroup for efficiency
 ;-
     pvs = strarr(5)
+    svals = ''
+    dvals = dblarr(4)
+; 
     ; Must fetch numbers as doubles, not strings, because of precision
     pvs[0]=self.record_name+'.CALO'
     pvs[1]=self.record_name+'.CALS'
@@ -185,23 +188,30 @@ function epics_mca::get_elapsed, new_flag, check_new=check_new
 ;       16-MAY-1999 MLR Added .read_time field
 ;       28-SEP-2001 MLR Added caStartGroup and caEndGroup
 ;-
+
     if keyword_set(CHECK_NEW) then begin
         new_flag = cacheckmonitor(self.record_name + '.ERTM')
         if (new_flag eq 0) then return, -1
     endif
+    svals = ''
+    dvals = dblarr(5)
+; 
     pvs = strarr(5)
     pvs[0]=self.record_name+'.ERTM'
     pvs[1]=self.record_name+'.ELTM'
     pvs[2]=self.record_name+'.ACT'
     pvs[3]=self.record_name+'.RTIM'
     pvs[4]=self.record_name+'.STIM'
+
     t=caGetArray(pvs[0:3], dvals, /double)
-    t=caGetArray(pvs[4], svals, /string)
+;
     self.elapsed.real_time    = dvals[0]
     self.elapsed.live_time    = dvals[1]
     self.elapsed.total_counts = dvals[2]
     self.elapsed.read_time    = dvals[3]
-    self.elapsed.start_time = strtrim(svals[0],2)
+;
+    t=caGetArray(pvs[4], svals, /string)
+    if (t eq 0) then self.elapsed.start_time = strtrim(svals[0],2)
     return, self->mca::get_elapsed()
 end
 
@@ -236,6 +246,7 @@ function epics_mca::get_presets
 ;       19-Sep-1998 MLR  Added caStartGroup, caEndGroup for efficiency
 ;-
     pvs = strarr(8)
+    vals = dblarr(8)
     pvs[0]=self.record_name + '.PRTM'
     pvs[1]=self.record_name + '.PLTM'
     pvs[2]=self.record_name + '.PCT'
@@ -325,6 +336,7 @@ function epics_mca::get_sequence
 ; MODIFICATION HISTORY:
 ;       Written by:     Mark Rivers, November 18, 1997
 ;-
+    temp = 0
     t = caget( self.record_name + '.SEQ',  temp)
     return, temp
 end
@@ -726,14 +738,12 @@ function epics_mca::get_data, new_flag, check_new=check_new
         new_flag = cacheckmonitor(self.record_name + '.VAL')
         if (new_flag eq 0) then return, -1
     endif
-; MN 18Feb2000 : add default for nchans and check of
-;    caget ( '.NUSE' ) status
     self.nchans = 2048
     t = caget( self.record_name + '.NUSE', temp)
     if (t eq 0 ) then self.nchans = temp
 
     t = caget( self.record_name + '.VAL', temp, max=self.nchans)
-    self.data = temp
+    if (t eq 0) then self.data = temp
     return, self.data(0:self.nchans-1)
 end
 
@@ -842,7 +852,7 @@ function epics_mca::get_acquire_status, update=update, $
         if (new_flag eq 0) then return, -1
     endif
     t = caget(self.record_name + '.ACQG', busy)
-    self.acquiring = busy
+    if (t eq 0) then self.acquiring = busy
     return, self->mca::get_acquire_status()
 
 end
@@ -1221,6 +1231,8 @@ function epics_mca::init, record_name, environment_file=environment_file
 ;                        acquisition start time.
 ;-
     t = self->mca::init()
+    ; Make sure ezca has been initialized
+    cainit
     self.record_name = record_name
     self.name = record_name
     status = caget( self.record_name + '.NUSE', nuse) ; see if it exists
@@ -1243,23 +1255,28 @@ function epics_mca::init, record_name, environment_file=environment_file
 
 ;   Read the environment file
     if n_elements(environment_file) eq 0 then environment_file = 'catch1d.env'
+    ;print, 'Epics MCA Opening envfile ', environment_file
     openr, lun, /get, environment_file, error=error
     if (error eq 0) then begin
         temp = {mca_environment}
         while (not eof(lun)) do begin
             line = ''
             readf, lun, line
-            pos = strpos(line, ' ')
-            if (pos ne -1) then begin
-                temp.name = strmid(line, 0, pos)
-                temp.description = strtrim(strmid(line, pos, 1000), 2)
-            endif else begin
-                temp.name = line
-                temp.description = ' '
-            endelse
-            if (n_elements(env) eq 0) then env = temp else env = [env, temp]
+            line = strtrim(line,2)
+            if (strlen(line) ge 1) then begin
+                pos = strpos(line, ' ')
+                if (pos ne -1) then begin
+                    temp.name = strmid(line, 0, pos)
+                    temp.description = strtrim(strmid(line, pos, 1000), 2)
+                endif else begin
+                    temp.name = line
+                    temp.description = ' '
+                endelse
+                if (n_elements(env) eq 0) then env = temp else env = [env, temp]
+            endif
         endwhile
         self.environment = ptr_new(env, /no_copy)
+        close, lun
         free_lun, lun
     endif
     return, 1
