@@ -225,6 +225,7 @@ pro mca_display_cleanup, dying_id ; called after widget hierarchy destroyed
     ; obj_destroy, mca_display
     ; Instead call new function, cleanup1 directly
     mca_display->cleanup1
+    obj_destroy, mca_display
 end
 
 
@@ -567,7 +568,7 @@ pro mca_display::print
                     title='Line thickness', xsize=12)
     charthick = cw_field(row, /float, value=self.print.charthick, /column, $
                     title='Character thickness', xsize=12)
-    font = cw_bgroup(row, ['Postscript', 'Vector'], /column, $
+    font = cw_bgroup(row, ['Hardware', 'Vector'], /column, $
                   label_top='Font', /exclusive, $
                   set_value=self.print.font)
     row = widget_base(base, /row, /frame)
@@ -580,8 +581,6 @@ pro mca_display::print
     title = cw_field(row, /string, value=self.print.title, /row, $
                     title='Plot title:', xsize=30)
     row = widget_base(base, /row, /frame)
-    command = cw_field(row, /string, value=self.print.command, /row, $
-                    title='Plot command:', xsize=30)
     row = widget_base(base, /row, /frame)
     print = widget_button(row, value='Print')
     quit = widget_button(row, value='Quit')
@@ -596,7 +595,6 @@ pro mca_display::print
                xtitle: xtitle, $
                ytitle: ytitle, $
                title: title, $
-               command: command, $
                print: print, $
                quit: quit}
     widget_control, base, set_uvalue = {mca_display: self, widgets: widgets}
@@ -629,15 +627,14 @@ if (event.id eq widgets.print) then begin
     widget_control, widgets.charsize, get_value=charsize
     widget_control, widgets.thick, get_value=thick
     widget_control, widgets.charthick, get_value=charthick
-    widget_control, widgets.font, get_value=temp
-    if (temp eq 1) then font=-1 else font=0
+    widget_control, widgets.font, get_value=font
+    if (font eq 1) then font_spec=-1 else font_spec=0
     widget_control, widgets.xtitle, get_value=xtitle
     xtitle = xtitle[0]
     widget_control, widgets.ytitle, get_value=ytitle
     ytitle = ytitle[0]
     widget_control, widgets.title, get_value=title
     title = title[0]
-    widget_control, widgets.command, get_value=command
     lo = self.display.hmin
     hi = self.display.hmax
     nchans = hi-lo+1
@@ -645,9 +642,8 @@ if (event.id eq widgets.print) then begin
     energy = self.foreground.mca->chan_to_energy(chans)
     calibration = self.foreground.mca->get_calibration()
     old_device = !d.name
-    set_plot, 'ps'
-    device, xsize=xsize, ysize=ysize, /inch, $
-            landscape=landscape, file='idl.ps'
+    set_plot, 'printer'
+    device, xsize=xsize, ysize=ysize, landscape=landscape, /inch
     plot, energy, self.foreground.data[lo:hi] > self.display.vmin,     $
           ylog = self.display.vlog,                              $
           yrange = [self.display.vmin, self.display.vmax],       $
@@ -660,7 +656,7 @@ if (event.id eq widgets.print) then begin
           xtitle    = xtitle,                                    $
           ytitle    = ytitle,                                    $
           title     = title,                                     $
-          font      = font
+          font      = font_spec
     if (self.background.valid) then $
         oplot, energy, self.background.data[lo:hi] > self.display.vmin, $
             psym   = self.display.psym,                              $
@@ -675,7 +671,7 @@ if (event.id eq widgets.print) then begin
     if (self.foreground.valid and $
         self.foreground.is_detector and $
         (not self.options.save_done)) then name = self.foreground.name
-    xyouts, x, y, /norm, size=chsize, $
+    xyouts, x, y, /norm, size=chsize, charthick=thick, $
         'File: ' + name + '!C' + $
         'Date: ' + self.foreground.elapsed.start_time + '!C' + $
         'Live time: ' + $
@@ -690,8 +686,6 @@ if (event.id eq widgets.print) then begin
         '2-theta: '+ string(calibration.two_theta, format='(f10.4)')
     device, /close
     set_plot, old_device
-    temp = command + ' idl.ps'
-    spawn, temp
     self.print.xsize = xsize
     self.print.ysize = ysize
     self.print.orientation = orientation
@@ -702,7 +696,6 @@ if (event.id eq widgets.print) then begin
     self.print.xtitle = xtitle
     self.print.ytitle = ytitle
     self.print.title = title
-    self.print.command = command
     widget_control, event.top, /destroy
 endif
 
@@ -2780,6 +2773,7 @@ pro mca_display::event, event ; event processing for MCA application
             file = dialog_pickfile( title = 'Select data file', $
                              path = self.file.filepath,  $
                              /must_exist,                $
+                             filter=['*.*', '*.mca'],    $
                              get_path = path)
             if (file ne '') then begin
                 ; Cancel button returns null string
@@ -2854,6 +2848,8 @@ pro mca_display::event, event ; event processing for MCA application
         end
 
         self.widgets.file_options:  self->file_options
+
+        self.widgets.print_setup:   t = dialog_printersetup()
 
         self.widgets.print:   self->print
 
@@ -3367,6 +3363,8 @@ pro mca_display::create_widgets
     self.widgets.new_window_large   = widget_button( self.widgets.new_window, $
                                             value = 'Large')
 
+    self.widgets.print_setup        = widget_button( file, $
+                                            value = 'Print setup . . .')
     self.widgets.print              = widget_button( file, $
                                             value = 'Print . . .')
     self.widgets.file_options       = widget_button( file, $
@@ -3719,7 +3717,6 @@ function mca_display::init, font_size=font_size, parent=parent
         self.print.ytitle =  'Counts'
         self.print.title =        ' '
         self.print.font =           0
-        self.print.command = 'lpr -Pgse_floor '
     endelse
 
     self.foreground.nchans = n_elements(self.foreground.data)
@@ -3838,6 +3835,7 @@ pro mca_display__define
         new_window_small:   0L, $
         new_window_medium:  0L, $
         new_window_large:   0L, $
+        print_setup:        0L, $
         print:              0L, $
         exit:               0L, $
                                 $
@@ -3984,8 +3982,7 @@ pro mca_display__define
         xtitle:        '',   $
         ytitle:        '',   $
         title:         '',   $
-        font:           0,   $
-        command:       ''    $
+        font:           0    $
     }
 
     fonts = mca_display_get_fonts()
