@@ -73,6 +73,8 @@
 ;                           any but the first detector.
 ;       MLR    11/21/01     Version 4.3.17  Fixed problem with IDL 5.5 in
 ;                           peak fits looking up XRF lines
+;       GAM     6/28/07     Version 4.3.18  Fixed problem with wdelete causing error
+;                           messages in Cleanup1
 ;
 
 
@@ -232,7 +234,9 @@ end
 ;*****************************************************************************
 pro mca_display::cleanup1
 
-    wdelete, self.windows.pixmap
+    device, WINDOW_STATE = win
+    if win[self.windows.pixmap] eq 1 then $
+      wdelete, self.windows.pixmap
     self->save_prefs
     obj_destroy, self.foreground.mca
     obj_destroy, self.background.mca
