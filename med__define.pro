@@ -843,10 +843,12 @@ pro med::set_data, data
        for i=0, self.n_detectors-1 do begin
           self.mca_objs[i]->set_data, data
        endfor
+       self.nchans = n_elements(data)
     endif else begin
        for i=0, self.n_detectors-1 do begin
           self.mca_objs[i]->set_data, data[*,i]
        endfor
+       self.nchans = n_elements(data[*,0])
     endelse
 end
 
