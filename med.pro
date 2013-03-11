@@ -18,7 +18,7 @@ if (ErrorNo ne 0) then begin
     return
 endif
 
-; timer runs at 0.5 sec when acquiring, so as to update the 
+; timer runs at 0.5 sec when acquiring, so as to update the
 ; 'elapsed time' field, and at 15 sec otherwise.
 if (tag_names(event, /structure_name) eq 'WIDGET_TIMER') then begin
     status = 0
@@ -32,7 +32,7 @@ if (tag_names(event, /structure_name) eq 'WIDGET_TIMER') then begin
     s    = caget((*p).det + 'Acquiring', status)
     stat = 'Ready'
     (*p).update_time = 2.0
-    if ((status gt 0) or ((*p).acq_count lt 2)) then begin 
+    if ((status gt 0) or ((*p).acq_count lt 2)) then begin
         stat = 'Acquiring'
         (*p).update_time = 0.25
     endif
@@ -68,16 +68,18 @@ if (tag_names(event, /structure_name) eq 'WIDGET_TIMER') then begin
              Widget_Control, (*p).form.elem,     set_value = elem
          end
          'start': begin
-             if ((*p).erase_on_start eq 1) then begin
-                 s = caput((*p).det + 'EraseStart', 1)
-             endif else begin
-                 s = caput((*p).det + 'StartAll', 1)
-             endelse
-             (*p).acq_count   = 1
-             (*p).update_time = 0.25
+            s = caput((*p).det + 'PresetMode', 1)
+            if ((*p).erase_on_start eq 1) then begin
+               s = caput((*p).det + 'EraseStart', 1)
+            endif else begin
+               s = caput((*p).det + 'StartAll', 1)
+            endelse
+            (*p).acq_count   = 1
+            (*p).update_time = 0.25
          end
          'continuous': begin
-             s = caput((*p).det + 'PresetReal', 0.00)
+             s = caput((*p).det + 'PresetMode', 0)
+             ; s = caput((*p).det + 'PresetReal', 0.00)
              check_time = 0
              if ((*p).erase_on_start eq 1) then begin
                  s = caput((*p).det + 'EraseStart', 1)
@@ -96,6 +98,7 @@ if (tag_names(event, /structure_name) eq 'WIDGET_TIMER') then begin
          'time_ent': begin
              Widget_Control, (*p).form.time_ent, get_value=v
              (*p).presetreal = a2f(v)
+             s = caput((*p).det + 'PresetMode', 1)
              s = caput((*p).det + 'PresetReal', a2f(v))
              check_time = 0
          end
@@ -104,7 +107,7 @@ if (tag_names(event, /structure_name) eq 'WIDGET_TIMER') then begin
              Widget_Control, (*p).form.status,   set_value = s
              Widget_Control, (*p).form.time_rbv, set_value = ' '
 
-             xm = obj_new('EPICS_MED', (*p).det)
+             xm = obj_new('EPICS_MED', (*p).det, 12)
              xm->copy_rois, (*p).elem, /energy
 ; MN 05/31/03  GE1 seems to need two copy_rois to work right...
 ;             if ((*p).det eq '13GE1:med:') then begin
@@ -139,7 +142,7 @@ if (tag_names(event, /structure_name) eq 'WIDGET_TIMER') then begin
              endif
          end
          'serase': begin
-             yorn =  [ [' * No ', '   No '] , [ '   Yes', ' * Yes'] ]        
+             yorn =  [ [' * No ', '   No '] , [ '   Yes', ' * Yes'] ]
              isel = 0
              if (sel eq 'y') then isel = 1
              (*p).erase_on_start = isel
@@ -180,8 +183,8 @@ pro med, detector=detector, use=use, env_file=env_file, no_gcd=no_gcd
 ; GUI control of Multi-Element-Detector
 ;
 
-det      = '13GE2:med:'
-elem     = 2
+det      = '13GEXMAP:'
+elem     = 1
 status   = 'Ready'
 time_ent = '1.00'
 time_rbv = '0.00'
@@ -190,16 +193,19 @@ time_mon = det + 'ElapsedReal'
 
 if (keyword_set(use) ne 0 ) then begin
    use_det = strlowcase(use)
+   if (use_det eq 'gexmap') then det = '13GEXMAP:'
    if (use_det eq 'ge1') then det = '13GE1:med:'
    if (use_det eq 'ge2') then det = '13GE2:med:'
 endif
 
 if (keyword_set(detector) ne 0) then det = detector
 if (n_elements(env_file)  eq 0) then begin
-  env_file = '//cars5.cars.aps.anl.gov/Data/xas_user/config/13idc_med_environment.dat'
+;;  env_file = '//cars5/Data/xas_user/config/13idc_med_environment.dat'
+  env_file = '//cars5/Data/xas_user/config/13bmd_med_environment.dat'
 endif
 
-; gcd
+print, ' env file ' , env_file
+gcd
 
 
 med_disp= obj_new()
@@ -287,8 +293,8 @@ os0 = bsiz*1.2
 os1 = bsiz*0.5
 os2 = bsiz*2.0
 x   = Widget_Label(tf, value = ' ', ysize=os0)
-x   = Widget_Button(tf, value = '14 ',  uval='elem14',xsize=bsiz,ysize=bsiz)
-x   = Widget_Button(tf, value = '15 ',  uval='elem15',xsize=bsiz,ysize=bsiz)
+;x   = Widget_Button(tf, value = '14 ',  uval='elem14',xsize=bsiz,ysize=bsiz)
+;x   = Widget_Button(tf, value = '15 ',  uval='elem15',xsize=bsiz,ysize=bsiz)
 
 
 tf  = Widget_Base(f,/col)
@@ -311,12 +317,12 @@ x   = Widget_Label(tf, value = ' ', ysize=os1)
 x   = Widget_Button(tf, value = '10 ',  uval='elem10',xsize=bsiz,ysize=bsiz)
 x   = Widget_Button(tf, value = '11 ',  uval='elem11',xsize=bsiz,ysize=bsiz)
 x   = Widget_Button(tf, value = '12 ',  uval='elem12',xsize=bsiz,ysize=bsiz)
-x   = Widget_Button(tf, value = '13 ',  uval='elem13',xsize=bsiz,ysize=bsiz)
+;x   = Widget_Button(tf, value = '13 ',  uval='elem13',xsize=bsiz,ysize=bsiz)
 
-tf  = Widget_Base(f,/col)
-x   = Widget_Label(tf, value = ' ', ysize=os2)
-x   = Widget_Button(tf, value = '16 ',  uval='elem16',xsize=bsiz,ysize=bsiz)
-x   = Widget_Label(tf, value = ' ', ysize=os1)
+;tf  = Widget_Base(f,/col)
+;x   = Widget_Label(tf, value = ' ', ysize=os2)
+;x   = Widget_Button(tf, value = '16 ',  uval='elem16',xsize=bsiz,ysize=bsiz)
+;x   = Widget_Label(tf, value = ' ', ysize=os1)
 
 
 ; render widgets, load info structure into main
@@ -335,7 +341,8 @@ Widget_Control, (*p).form.time_rbv, set_value  = ' '
 
 dmca  = (*p).det + 'mca' + strtrim(string((*p).elem),2)
 (*p).med_disp->open_detector, dmca
-(*p).med = obj_new('EPICS_MED', det,environment_file=env_file)
+; (*p).med = obj_new('EPICS_MED', det)
+(*p).med = obj_new('EPICS_MED', det, 12, environment_file=env_file)
 
 ;
 ; when objects are really created, report 'Ready'.
