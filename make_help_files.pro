@@ -1,4 +1,4 @@
-dest = '/net/millenia/usr/local/apache/htdocs/software/'
+dest = '/home/epics/web_software/idl/'
 mk_html_help, 'mca__define.pro', dest+'mca_class.html', $
     title = 'MCA Class'
 mk_html_help, 'epics_mca__define.pro', dest+'epics_mca_class.html', $
