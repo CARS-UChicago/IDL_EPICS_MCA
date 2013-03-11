@@ -4,7 +4,7 @@
 
 pro med_calibrate, med=med_
 ;  .compile read_peaks
-  PV = '13GE1:med:'
+  PV = '13GE3:med:'
 
   collect_time = 40
   if (n_elements(med_)  ne 0)  then  PV = med_
