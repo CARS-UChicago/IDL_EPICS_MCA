@@ -20,6 +20,9 @@ endif
 
 ; timer runs at 0.5 sec when acquiring, so as to update the
 ; 'elapsed time' field, and at 15 sec otherwise.
+FAST_UPDATE_TIME = 0.1
+SLOW_UPDATE_TIME = 1.0
+
 if (tag_names(event, /structure_name) eq 'WIDGET_TIMER') then begin
     status = 0
     xt1    = (*p).ctime
@@ -31,20 +34,35 @@ if (tag_names(event, /structure_name) eq 'WIDGET_TIMER') then begin
 
     s    = caget((*p).det + 'Acquiring', status)
     stat = 'Ready'
-    (*p).update_time = 2.0
+    (*p).update_time=SLOW_UPDATE_TIME
+
     if ((status gt 0) or ((*p).acq_count lt 2)) then begin
         stat = 'Acquiring'
-        (*p).update_time = 0.25
-    endif
+        (*p).update_time=FAST_UPDATE_TIME
+    endif 
+
     (*p).acq_count = (*p).acq_count + 1
 
     Widget_Control, (*p).form.status,   set_value = stat
     Widget_Control, (*p).form.time_rbv, set_value = stime
+
+    tnow = dxtime()
+    if (tnow - (*p).icr_update_time) gt 10 then begin
+        (*p).icr_update_time = tnow
+        for i = 0, 3 do begin
+            dxp   = (*p).det + 'dxp'+strtrim(string(i+1),2)
+            s     = caget(dxp + '.ICR',xicr)
+            s     = caget(dxp + '.OCR',xocr)
+            xx = xocr*1.0/xicr
+            sicr  = strtrim(string(xicr,format='(i6)'),2) + '   [ ' + strtrim(string(xx,format='(f6.2)'),2)  + ']'
+            Widget_Control, (*p).form.icr[i],   set_value = sicr        
+        endfor
+    endif
+
     check_time  =  1
 
  endif else begin
      ; print, 'med_event uval: ', uval
-     (*p).update_time = 2.0
      check_time = 1
      if (strmid(uval,0,4) eq 'elem') then begin
          elem = strmid(uval,4)
@@ -64,7 +82,6 @@ if (tag_names(event, /structure_name) eq 'WIDGET_TIMER') then begin
              Widget_Control, (*p).form.status,   set_value = s
              Widget_Control, (*p).form.time_rbv, set_value = ' '
              if (obj_valid((*p).med_disp)) then  (*p).med_disp->open_detector, dx
-             (*p).update_time = 2.0
              ; Widget_Control, (*p).form.elem,     set_value = elem
          end
          'start': begin
@@ -74,7 +91,6 @@ if (tag_names(event, /structure_name) eq 'WIDGET_TIMER') then begin
                  s = caput((*p).det + 'StartAll', 1)
              endelse
              (*p).acq_count   = 1
-             (*p).update_time = 0.25
          end
          'continuous': begin
              s = caput((*p).det + 'PresetReal', 0.00)
@@ -85,7 +101,6 @@ if (tag_names(event, /structure_name) eq 'WIDGET_TIMER') then begin
                  s = caput((*p).det + 'StartAll', 1)
              endelse
              (*p).acq_count   = 1
-             (*p).update_time = 0.25
          end
          'stop': begin
              s = caput((*p).det + 'StopAll', 1)
@@ -104,17 +119,8 @@ if (tag_names(event, /structure_name) eq 'WIDGET_TIMER') then begin
              Widget_Control, (*p).form.status,   set_value = s
              Widget_Control, (*p).form.time_rbv, set_value = ' '
 
-             xm = obj_new('EPICS_MED', (*p).det)
+             xm = obj_new('EPICS_MED', (*p).det, (*p).ndet)
              xm->copy_rois, (*p).elem, /energy
-; MN 05/31/03  GE1 seems to need two copy_rois to work right...
-;             if ((*p).det eq '13GE1:med:') then begin
-;                  print, ' using copy_rois kludge for GE1'
-;                  (*p).med->copy_rois,  (*p).elem
-;              endif else begin
-;                  print, ' using copy_rois kludge for GE2'
-;                  (*p).med->copy_rois,  (*p).elem, /energy
-;              endelse
-;              (*p).med->copy_rois,  (*p).elem, /energy
              obj_destroy, xm
              Widget_Control, (*p).form.status,   set_value = 'Ready'
          end
@@ -151,11 +157,11 @@ if (tag_names(event, /structure_name) eq 'WIDGET_TIMER') then begin
              print, ' unknown event : ', uval
          end
      endcase
-
  endelse
 
  Widget_Control, (*p).form.timer,   time= (*p).update_time
- ; print, ' update ', (*p).update_time
+ ; mtime = dxtime()
+ ; print, ' update :: ', (*p).update_time, mtime
  ; recheck preset real time and update display
  if (check_time eq 1) then begin ; and ((*p).acq_count) mod 3)) then begin
     check_time = 1
@@ -181,7 +187,7 @@ pro xmap, detector=detector, use=use, env_file=env_file, no_gcd=no_gcd, ndet=nde
 ; GUI control of Multi-Element-Detector
 ;
 
-det      = 'dxpXMAP:'
+det      = '13SDD1:'
 ndetectors = 4
 elem     = 1
 status   = 'Ready'
@@ -194,19 +200,22 @@ if (keyword_set(use) ne 0 ) then begin
    use_det = strlowcase(use)
    if (use_det eq 'ge1') then det = '13GE1:med:'
    if (use_det eq 'ge2') then det = '13GE2:med:'
-   if (use_det eq 'xmap') then det = 'dxpXMAP:'
+   if (use_det eq 'xmap') then det = '13SDD1:'
 endif
 
 if (keyword_set(ndet) ne 0)     then ndetectors = ndet
 if (keyword_set(detector) ne 0) then det = detector
 if (n_elements(env_file)  eq 0) then begin
   env_file = '//cars5/Data/xas_user/config/13idc_med_environment.dat'
-  env_file = '//cars5/Data/xas_user/config/xmap_med_environment.dat'
+  env_file = '//cars5/Data/xas_user/config/XRM_XMAP_PVS.DAT'
 endif
+setenv, 'MCA_PREFERENCES=//cars5/Data/xas_user/config/mca.preferences'
 
-print, ' env file ' , env_file
-gcd
-
+;
+if (keyword_set(no_gcd) eq 0 ) then begin
+   dir = dialog_pickfile(/dir)
+   if dir then cd, dir
+endif
 
 med_disp= obj_new()
 med     = obj_new()
@@ -220,12 +229,15 @@ time_ent = strtrim(string(preset,format='(f7.2)'),2)
 
 form    = {pos:0L, time_rbv:0L, elem:0L, $
            serase_y:0L , serase_n:0L,  $
-           time_ent:0L,timer:0L, status:0L}
+           time_ent:0L,timer:0L, status:0L, $
+           icr:lonarr(4) } 
+
+
 info    = {med_disp:med_disp, med:med, form:form, $
-           erase_on_start:1, file:tfile, $
+           erase_on_start:1, file:tfile, ndet:ndetectors, $
            det:det, elem:elem, acq_count:1,  update_time:1.0, $
            time_mon:time_mon, ctime:0.0, presetreal:0.0, $
-           time_ent:time_ent,time_rbv:time_rbv}
+           time_ent:time_ent,time_rbv:time_rbv, icr_update_time:0.0}
 
 ; menus
 main   = Widget_Base(title = '4 Element Vortex(XMAP) Control', /col, app_mbar = mbar)
@@ -286,18 +298,28 @@ info.form.time_rbv = Widget_Label(uf,value=strtrim(info.time_rbv,2),$
 ;
 uf  = Widget_Base(lfr, /row)
 x   = Widget_Label(uf, value = 'Detector Elements')
-f   = Widget_Base(lfr, /row)
-tf  = Widget_Base(f, /col)
-bsiz= 50
-os0 = bsiz*1.2
-os1 = bsiz*0.5
-os2 = bsiz*2.0
-x   = Widget_Button(tf, value = '1 ',  uval='elem1',xsize=bsiz,ysize=bsiz)
-x   = Widget_Button(tf, value = '2 ',  uval='elem2',xsize=bsiz,ysize=bsiz)
+f   = Widget_Base(lfr, /col)
 
-tf  = Widget_Base(f,/col)
-x   = Widget_Button(tf, value = ' 3 ',  uval='elem3',xsize=bsiz,ysize=bsiz)
-x   = Widget_Button(tf, value = ' 4 ',  uval='elem4',xsize=bsiz,ysize=bsiz)
+bsiz= 45
+
+
+tf  = Widget_Base(f, /row)
+x   = Widget_Button(tf, value = '1',  uval='elem1',xsize=bsiz,ysize=bsiz)
+x   = Widget_Button(tf, value = '4',  uval='elem4',xsize=bsiz,ysize=bsiz)
+
+tf  = Widget_Base(f,/row)
+x   = Widget_Button(tf, value = '2',  uval='elem2',xsize=bsiz,ysize=bsiz)
+x   = Widget_Button(tf, value = '3',  uval='elem3',xsize=bsiz,ysize=bsiz)
+
+
+tf  = Widget_Base(f,/row)
+x   = Widget_Label(tf,  value = '      ICR     [OCR/ICR]:')
+
+for i = 0, 3 do begin
+    tf  = Widget_Base(f,/row)
+    x   = Widget_Label(tf,  value = strtrim(string(i),2) + ':')
+    info.form.icr[i] = Widget_Label(tf,value='  0 / 0 ', xsize=130)
+endfor
 
 ; render widgets, load info structure into main
 p    = ptr_new(info,/no_copy)
@@ -310,12 +332,10 @@ xmanager, 'xmap', main, /no_block
 ; status message
 
 Widget_Control, (*p).form.time_rbv, set_value  = ' '
-
 (*p).med_disp = obj_new('mca_display')
 
 dmca  = (*p).det + 'mca' + strtrim(string((*p).elem),2)
 (*p).med_disp->open_detector, dmca
-; (*p).med = obj_new('EPICS_MED', det)
 (*p).med = obj_new('EPICS_MED', det, ndetectors, environment_file=env_file)
 
 
