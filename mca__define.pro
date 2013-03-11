@@ -67,6 +67,7 @@
 ;
 
 function mca::copy
+compile_opt strictarr
 ;+
 ; NAME:
 ;       MCA::COPY
@@ -1501,7 +1502,7 @@ function mca::get_rois, roi_info, energy=energy
     roi_info.max_rois = self.max_rois
     roi_info.nrois = self.nrois
     if (self.nrois eq 0) then roi=self.roi(0) $
-    else roi = self.roi(0:self.nrois-1)
+    else roi = self.roi[0:self.nrois-1]
     if (keyword_set(energy)) then begin
         roi.left = self->chan_to_energy(roi.left)
         roi.right = self->chan_to_energy(roi.right)
@@ -2567,7 +2568,7 @@ pro mca_read_ascii_file, file, elapsed, calibration, rois, roi_info, $
                                 counts = lonarr(n_detectors)
                                 for i=0, nchans-1 do begin
                                     readf, unit, counts
-                                    data(i,*) = counts
+                                    data[i,*] = counts
                                 endfor
                             end
             else         :  begin
@@ -2576,17 +2577,17 @@ pro mca_read_ascii_file, file, elapsed, calibration, rois, roi_info, $
                                 if (tag eq roi+'LEFT:') then begin
                                     temp = fltarr(n_detectors)
                                     reads, value, temp
-                                    rois(i,*).left = transpose(temp)
+                                    rois[i,*].left = transpose(temp)
                                     goto, found_roi
                                 endif else if (tag eq roi+'RIGHT:') then begin
                                     temp = fltarr(n_detectors)
                                     reads, value, temp
-                                    rois(i,*).right = transpose(temp)
+                                    rois[i,*].right = transpose(temp)
                                     goto, found_roi
                                 endif else if (tag eq roi+'LABEL:') then begin
                                     temp = str_sep(value, '&', /trim)
                                     temp = temp[0:n_detectors-1]
-                                    rois(i,*).label = transpose(temp)
+                                    rois[i,*].label = transpose(temp)
                                     goto, found_roi
                                 endif
                             endfor
