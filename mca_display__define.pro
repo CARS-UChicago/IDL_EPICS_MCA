@@ -3646,8 +3646,8 @@ function mca_display::init, font_size=font_size, parent=parent
     mca=obj_new('mca')   ; Dummy MCA object
     if (n_elements(parent) ne 0) then spawned=1 else spawned=0
 
-    self.options.version = '4.3.17' ; Version number of program
-    self.options.date = 'November 21, 2001' ; Modification date of program
+    self.options.version = '4.3.18' ; Version number of program
+    self.options.date = 'April 18, 2013' ; Modification date of program
     self.options.warn_overwrite = 1L
                             ; Warn user of attempt to overwrite existing file
 
