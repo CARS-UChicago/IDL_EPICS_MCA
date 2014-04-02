@@ -11,7 +11,7 @@ if n_elements(time) eq 0 then time=5
 base = widget_base(title = title, /column)
 col = widget_base(base, /column, /frame)
 for i=0, n_elements(text)-1 do begin
-   t = widget_label(col, value=text(i), font=font)
+   t = widget_label(col, value=text[i], font=font)
 endfor
 t = widget_button(base, value='Dismiss', /align_center, font=font)
 widget_control, base, /realize
