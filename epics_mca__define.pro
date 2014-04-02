@@ -739,11 +739,17 @@ function epics_mca::get_data, new_flag, check_new=check_new
         if (new_flag eq 0) then return, -1
     endif
     self.nchans = 2048
+    nord = 2028
     t = caget( self.record_name + '.NUSE', temp)
     if (t eq 0 ) then self.nchans = temp
+    t = caget( self.record_name + '.NORD', temp)
+    if (t eq 0 ) then nord = temp
 
-    t = caget( self.record_name + '.VAL', temp, max=self.nchans)
-    if (t eq 0) then self.data = temp
+    self.data[0:self.nchans-1] = 0
+    if (nord gt 0) then begin 
+        t = caget( self.record_name + '.VAL', temp, max=nord)
+        if (t eq 0) then self.data[0:nord-1] = temp
+    endif
     return, self.data(0:self.nchans-1)
 end
 
@@ -1246,6 +1252,7 @@ function epics_mca::init, record_name, environment_file=environment_file
     t = casetmonitor(self.record_name + '.ACQG')
     t = casetmonitor(self.record_name + '.VAL')
     t = casetmonitor(self.record_name + '.NUSE')
+    t = casetmonitor(self.record_name + '.NORD')
     t = casetmonitor(self.record_name + '.ERTM')
 
 ;   Need to read calibration initially so that MCA::CHAN_TO_ENERGY, etc. work
