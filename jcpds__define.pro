@@ -580,9 +580,9 @@ pro jcpds::compute_D, pressure, temperature
                               2 * h * l * cos(beta) / (a * c * sin(beta)^2)
 
         'TRICLINIC': begin
-                        V = a^2 * b^2 * c^2 * $
+                        V = sqrt(a^2 * b^2 * c^2 * $
                             (1. - cos(alpha)^2 - cos(beta)^2 - cos(gamma)^2 + $
-                            2 * cos(alpha) * cos(beta) * cos(gamma))
+                            2 * cos(alpha) * cos(beta) * cos(gamma)))
                         s11 = b^2 * c^2 * sin(alpha)^2
                         s22 = a^2 * c^2 * sin(beta)^2
                         s33 = a^2 * b^2 * sin(gamma)^2
