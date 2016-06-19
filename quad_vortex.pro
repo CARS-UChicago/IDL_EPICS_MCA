@@ -206,13 +206,12 @@ endif
 return
 end
 
-pro quad_vortex, detector=detector, use=use, env_file=env_file, no_gcd=no_gcd, ndet=ndet
+pro quad_vortex, detector=detector, env_file=env_file, no_gcd=no_gcd, ndet=ndet
 ;
 ; GUI control of 4-Element Vortex Detector
 ;
-
+;; det      = 'dxpMercury:'
 det      = '13SDD1:'
-det      = 'dxpMercury:'
 ndetectors = 4
 elem     = 1
 status   = 'Ready'
@@ -221,17 +220,14 @@ time_rbv = '0.00'
 tfile    = 'test.xrf'
 time_mon = det + 'ElapsedReal'
 
-if (keyword_set(use) ne 0 ) then begin
-   use_det = strlowcase(use)
-   if (use_det eq 'quad') then det = 'dxpMercury:'
-endif
 
 if (keyword_set(ndet) ne 0)     then ndetectors = ndet
 if (keyword_set(detector) ne 0) then det = detector
 if (n_elements(env_file)  eq 0) then begin
- ; env_file = '//cars5/Data/xas_user/config/13idc_med_environment.dat'
-  env_file = '//cars5/Data/xas_user/config/XRM_XMAP_PVS_IDE.DAT'
- ; env_file = '//cars5/Data/xas_user/config/XRM_XMAP_PVS_BMD.DAT'
+  env_file = '//cars5/Data/xas_user/config/IDE_SDD1_ENV.DAT'
+  if det eq 'dxpMercury:' then begin
+     env_file = '//cars5/Data/xas_user/config/IDE_Mercury_ENV.DAT'
+  endif
 endif
 setenv, 'MCA_PREFERENCES=//cars5/Data/xas_user/config/mca.preferences'
 
