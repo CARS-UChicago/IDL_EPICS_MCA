@@ -200,8 +200,7 @@ endif
 
 if (keyword_set(detector) ne 0) then det = detector
 if (n_elements(env_file)  eq 0) then begin
-;;  env_file = '//cars5/Data/xas_user/config/13idc_med_environment.dat'
-  env_file = '//cars5/Data/xas_user/config/13bmd_med_environment.dat'
+  env_file = '//cars5/Data/xas_user/config/BMD_GSEXMAP_ENV.dat'
 endif
 
 print, ' env file ' , env_file
@@ -317,12 +316,12 @@ x   = Widget_Label(tf, value = ' ', ysize=os1)
 x   = Widget_Button(tf, value = '10 ',  uval='elem10',xsize=bsiz,ysize=bsiz)
 x   = Widget_Button(tf, value = '11 ',  uval='elem11',xsize=bsiz,ysize=bsiz)
 x   = Widget_Button(tf, value = '12 ',  uval='elem12',xsize=bsiz,ysize=bsiz)
-;x   = Widget_Button(tf, value = '13 ',  uval='elem13',xsize=bsiz,ysize=bsiz)
+; x   = Widget_Button(tf, value = '13 ',  uval='elem13',xsize=bsiz,ysize=bsiz)
 
-;tf  = Widget_Base(f,/col)
-;x   = Widget_Label(tf, value = ' ', ysize=os2)
-;x   = Widget_Button(tf, value = '16 ',  uval='elem16',xsize=bsiz,ysize=bsiz)
-;x   = Widget_Label(tf, value = ' ', ysize=os1)
+; tf  = Widget_Base(f,/col)
+; x   = Widget_Label(tf, value = ' ', ysize=os2)
+; x   = Widget_Button(tf, value = '16 ',  uval='elem16',xsize=bsiz,ysize=bsiz)
+; x   = Widget_Label(tf, value = ' ', ysize=os1)
 
 
 ; render widgets, load info structure into main
@@ -342,7 +341,7 @@ Widget_Control, (*p).form.time_rbv, set_value  = ' '
 dmca  = (*p).det + 'mca' + strtrim(string((*p).elem),2)
 (*p).med_disp->open_detector, dmca
 ; (*p).med = obj_new('EPICS_MED', det)
-(*p).med = obj_new('EPICS_MED', det, 12, environment_file=env_file)
+(*p).med = obj_new('EPICS_MED', det, 16, environment_file=env_file)
 
 ;
 ; when objects are really created, report 'Ready'.
