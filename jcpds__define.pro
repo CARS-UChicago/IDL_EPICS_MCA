@@ -435,7 +435,7 @@ pro jcpds::compute_volume, pressure, temperature
             self.v = self.v0
         endif else begin
             mod_pressure = pressure - alphat*k0*(temperature-298.)
-            v0_v = fx_root([0.5,1.0,1.0], 'jcpds_bm3_inverse')
+            v0_v = fx_root([0.5,1.0,1.5], 'jcpds_bm3_inverse')
             self.v = self.v0/v0_v
         endelse
     endelse
@@ -490,8 +490,9 @@ function jcpds_bm3_inverse, v0_v
 ;-
     common bm3_common, mod_pressure, k0, k0p
 
-    return, 1.5*k0*(v0_v^(7./3.) - v0_v^(5./3.)) * $
+    val = 1.5*k0*(v0_v^(7./3.) - v0_v^(5./3.)) * $
             (1 + 0.75*(k0p - 4.) * (v0_v^(2./3.) - 1.0)) - mod_pressure
+    return, val
 end
 
 
