@@ -435,7 +435,7 @@ pro jcpds::compute_volume, pressure, temperature
             self.v = self.v0
         endif else begin
             mod_pressure = pressure - alphat*k0*(temperature-298.)
-            v0_v = fx_root([0.0,0.5,1.0], 'jcpds_bm3_inverse')
+            v0_v = fx_root([0.5,1.0,1.0], 'jcpds_bm3_inverse')
             self.v = self.v0/v0_v
         endelse
     endelse
@@ -574,10 +574,11 @@ pro jcpds::compute_D, pressure, temperature
                                 (1 - tan(0.5*alpha)^2)*(h*k + k*l + l*h))) / $
                                 (a^2 * (1 + cos(alpha) - 2*cos(alpha)^2))
 
-        'MONOCLINIC': d2inv = h^2 / sin(beta)^2 / a^2 + $
-                              k^2 / b^2 + $
-                              l^2 / sin(beta)^2 / c^2 + $
-                              2 * h * l * cos(beta) / (a * c * sin(beta)^2)
+        'MONOCLINIC': d2inv = 1. / sin(beta)^2 * $
+                              (h^2 / a^2 $
+                               + k^2 * sin(beta)^2 / b^2 $
+                               + l^2 / c^2 $
+                               - 2 * h * l * cos(beta) / (a * c))
 
         'TRICLINIC': begin
                         V = sqrt(a^2 * b^2 * c^2 * $
