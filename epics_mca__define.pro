@@ -1262,7 +1262,8 @@ function epics_mca::init, record_name, environment_file=environment_file
 
 ;   Read the environment file
     if n_elements(environment_file) eq 0 then environment_file = 'catch1d.env'
-    ;print, 'Epics MCA Opening envfile ', environment_file
+    cd, current=current_directory
+    print, 'epics_mca::init opening envfile: ' + environment_file + ' current directory: ' + current_directory
     openr, lun, /get, environment_file, error=error
     if (error eq 0) then begin
         temp = {mca_environment}
@@ -1285,7 +1286,9 @@ function epics_mca::init, record_name, environment_file=environment_file
         self.environment = ptr_new(env, /no_copy)
         close, lun
         free_lun, lun
-    endif
+    endif else begin
+        print, 'Error opening environment file: ', environment_file
+    endelse
     return, 1
 end
 
